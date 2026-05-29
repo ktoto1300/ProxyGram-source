@@ -170,7 +170,7 @@ public class ProxyManager {
             .putString("proxy_secret", info.secret)
             .apply();
 
-        ConnectionsManager.getInstance(UserConfig.selectedAccount).setProxySettings(info.address, info.port, info.username, info.password, info.secret);
+        ConnectionsManager.setProxySettings(true, info.address, info.port, info.username, info.password, info.secret);
     }
 
     private static void showNoProxiesAlert() {
