@@ -1,5 +1,11 @@
 include ':TMessagesProj'
 include ':TMessagesProj_App'
+
 include ':TMessagesProj_AppHuawei'
+project(':TMessagesProj_AppHuawei').projectDir = new File(settingsDir, 'other_versions/TMessagesProj_AppHuawei')
+
 include ':TMessagesProj_AppHockeyApp'
+project(':TMessagesProj_AppHockeyApp').projectDir = new File(settingsDir, 'other_versions/TMessagesProj_AppHockeyApp')
+
 include ':TMessagesProj_AppStandalone'
+project(':TMessagesProj_AppStandalone').projectDir = new File(settingsDir, 'other_versions/TMessagesProj_AppStandalone')
