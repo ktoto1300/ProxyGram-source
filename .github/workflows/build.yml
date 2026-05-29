@@ -24,13 +24,16 @@ jobs:
         run: chmod +x gradlew
 
       - name: Build with Gradle
-        run: ./gradlew :TMessagesProj_App:assembleAfatDebug --no-daemon
+        run: ./gradlew :TMessagesProj_App:assembleAfatDebug --no-daemon --stacktrace
         env:
-          JAVA_OPTS: "-Xmx6g"
-          GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx6g -Dorg.gradle.parallel=false"
+          JAVA_OPTS: "-Xmx5g"
+          GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx5g -Dorg.gradle.parallel=false -Dorg.gradle.daemon=false"
+
+      - name: List Files (Debug APK Path)
+        run: find . -name "*.apk"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: ProxyGram-Debug-APK
-          path: TMessagesProj_App/build/outputs/apk/afat/debug/*.apk
+          path: "**/*.apk"
