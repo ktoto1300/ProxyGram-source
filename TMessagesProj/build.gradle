@@ -191,6 +191,9 @@ android {
             buildConfigField "boolean", "BUILD_HOST_IS_WINDOWS", isWindows
         }
     }
+    buildFeatures {
+        buildConfig true
+    }
     namespace 'org.telegram.messenger'
 }
 

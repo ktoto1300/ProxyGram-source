@@ -20,20 +20,14 @@ jobs:
           distribution: 'microsoft'
           cache: gradle
 
-      - name: Accept Android Licenses
-        run: yes | sdkmanager --licenses || true
-
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
       - name: Build with Gradle
-        run: ./gradlew :TMessagesProj_App:assembleAfatDebug --no-daemon --stacktrace --info
+        run: ./gradlew :TMessagesProj_App:assembleAfatDebug --no-daemon
         env:
           JAVA_OPTS: "-Xmx5g"
           GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx5g -Dorg.gradle.parallel=false -Dorg.gradle.daemon=false"
-
-      - name: List Files (Debug APK Path)
-        run: find . -name "*.apk"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
