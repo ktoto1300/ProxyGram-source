@@ -781,36 +781,13 @@ public class ConnectionsManager extends BaseController {
             return;
         }
 
-        if (proxy.type == SharedConfig.ProxyInfo.PROXY_TYPE_TOR_BRIDGE) {
-            org.json.JSONObject bridge = BridgeUpdater.getWorkingBridge();
-            if (bridge != null) {
-                try {
-                    String ip = bridge.getString("ip");
-                    int port = bridge.getInt("port");
-                    String key = bridge.getString("key");
-                    String bridgeString = "obfs4 " + ip + ":" + port + " " + key;
-                    native_setProxySettings(currentAccount, bridgeString, port, "", "", "");
-                } catch (Exception e) {
-                    native_setProxySettings(currentAccount, proxy.address, proxy.port, proxy.username, proxy.password, proxy.secret);
-                }
-            } else {
-                String secret = proxy.secret;
-                if (SharedConfig.forceMtproto2 && !TextUtils.isEmpty(secret)) {
-                    if (secret.length() == 32) {
-                        secret = "ee" + secret;
-                    }
-                }
-                native_setProxySettings(currentAccount, proxy.address, proxy.port, proxy.username, proxy.password, secret);
+        String secret = proxy.secret;
+        if (SharedConfig.forceMtproto2 && !TextUtils.isEmpty(secret)) {
+            if (secret.length() == 32) {
+                secret = "ee" + secret;
             }
-        } else {
-            String secret = proxy.secret;
-            if (SharedConfig.forceMtproto2 && !TextUtils.isEmpty(secret)) {
-                if (secret.length() == 32) {
-                    secret = "ee" + secret;
-                }
-            }
-            native_setProxySettings(currentAccount, proxy.address, proxy.port, proxy.username, proxy.password, secret);
         }
+        native_setProxySettings(currentAccount, proxy.address, proxy.port, proxy.username, proxy.password, secret);
     }
 
     public void setConnectionState(int state) {
@@ -824,8 +801,7 @@ public class ConnectionsManager extends BaseController {
                 long currentTime = System.currentTimeMillis();
                 if (currentTime - lastTorBridgeSwitchTime > 15000) {
                     lastTorBridgeSwitchTime = currentTime;
-                    BridgeUpdater.nextBridge();
-                    setProxySettings(SharedConfig.currentProxy);
+                    // Tor bridges logic removed for ProxyGram
                 }
             }
         }
