@@ -812,18 +812,11 @@ public class ProxySettingsActivity extends BaseFragment {
                     ((View) inputFields[i].getParent()).setVisibility(android.view.View.GONE);
                 }
             }
-            int count = org.telegram.messenger.BridgeUpdater.getBridgesCount();
-            org.json.JSONObject current = org.telegram.messenger.BridgeUpdater.getWorkingBridge();
-            String currentStr = "Нет мостов";
-            if (current != null) {
-                try {
-                    currentStr = current.getString("ip") + ":" + current.getInt("port");
-                } catch (Exception e) {
-                    currentStr = "Ошибка чтения";
-                }
-            }
+            int count = SharedConfig.proxyList.size();
+            String currentStr = SharedConfig.currentProxy != null ? SharedConfig.currentProxy.address + ":" + SharedConfig.currentProxy.port : "Нет активного прокси";
+            
             if (bottomCell != null) {
-                bottomCell.setText("Мостов в базе: " + count + "\nТекущий мост: " + currentStr);
+                bottomCell.setText("Прокси в базе: " + count + "\nТекущий прокси: " + currentStr);
                 bottomCell.setVisibility(android.view.View.VISIBLE);
             }
         } else {
@@ -847,8 +840,8 @@ public class ProxySettingsActivity extends BaseFragment {
     }
 
     public void onUpdateBridgesClicked() {
-        org.telegram.messenger.BridgeUpdater.fetchBridgesNow();
-        android.widget.Toast.makeText(getParentActivity(), "Мосты обновляются...", android.widget.Toast.LENGTH_SHORT).show();
+        org.telegram.messenger.ProxyManager.fetchAndApplyProxies();
+        android.widget.Toast.makeText(getParentActivity(), "Прокси обновляются...", android.widget.Toast.LENGTH_SHORT).show();
         updateTorBridgeUI(true);
     }
 
