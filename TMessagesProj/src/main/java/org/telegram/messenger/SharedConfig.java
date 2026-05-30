@@ -464,18 +464,6 @@ public class SharedConfig {
             if (this.secret == null) {
                 this.secret = "";
             }
-            if (this.type == PROXY_TYPE_TOR_BRIDGE) {
-                try {
-                    org.json.JSONObject bridge = BridgeUpdater.getWorkingBridge();
-                    if (bridge != null) {
-                        this.bridgeIp = bridge.getString("ip");
-                        this.bridgePort = String.valueOf(bridge.getInt("port"));
-                        this.bridgeKey = bridge.getString("key");
-                    }
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
         }
 
         public String getLink() {
