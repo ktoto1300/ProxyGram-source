@@ -3,7 +3,16 @@ package org.telegram.messenger;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.net.Uri;
+
+import org.json.JSONArray;
+import org.json.JSONObject;
 import org.telegram.tgnet.ConnectionsManager;
+import org.telegram.tgnet.RequestTimeDelegate;
+import org.telegram.messenger.MessagesController;
+import org.telegram.messenger.NotificationCenter;
+import org.telegram.messenger.UserConfig;
+import org.telegram.messenger.FileLog;
+
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
@@ -127,21 +136,24 @@ public class ProxyManager {
 
         for (int i = 0; i < SharedConfig.proxyList.size(); i++) {
             final SharedConfig.ProxyInfo info = SharedConfig.proxyList.get(i);
-            ConnectionsManager.getInstance(UserConfig.selectedAccount).checkProxy(info.address, info.port, info.username, info.password, info.secret, (time) -> {
-                if (time == -1) {
-                    // Прокси мертв - удаляем из списка Telegram
-                    SharedConfig.deleteProxy(info);
-                    FileLog.d("ProxyManager: Removed dead proxy " + info.address);
-                    
-                    // Если удалили текущий - ищем замену
-                    if (SharedConfig.currentProxy == info) {
-                        SharedConfig.currentProxy = null;
-                        switchToNextWorkingProxy();
-                    }
-                } else {
-                    // Прокси живой
-                    if (SharedConfig.currentProxy == null || !SharedConfig.isProxyEnabled()) {
-                        applyProxy(info);
+            ConnectionsManager.getInstance(UserConfig.selectedAccount).checkProxy(info.address, info.port, info.username, info.password, info.secret, new RequestTimeDelegate() {
+                @Override
+                public void run(long time) {
+                    if (time == -1) {
+                        // Прокси мертв - удаляем из списка Telegram
+                        SharedConfig.deleteProxy(info);
+                        FileLog.d("ProxyManager: Removed dead proxy " + info.address);
+                        
+                        // Если удалили текущий - ищем замену
+                        if (SharedConfig.currentProxy == info) {
+                            SharedConfig.currentProxy = null;
+                            switchToNextWorkingProxy();
+                        }
+                    } else {
+                        // Прокси живой
+                        if (SharedConfig.currentProxy == null || !SharedConfig.isProxyEnabled()) {
+                            applyProxy(info);
+                        }
                     }
                 }
             });

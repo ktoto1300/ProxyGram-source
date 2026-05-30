@@ -28,10 +28,10 @@ jobs:
         run: yes | sdkmanager --licenses || true
 
       - name: Build with Gradle
-        run: gradle :TMessagesProj_App:assembleAfatDebug --no-daemon --stacktrace
+        run: gradle clean :TMessagesProj_App:assembleAfatDebug --no-daemon --stacktrace
         env:
-          JAVA_OPTS: "-Xmx5g"
-          GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx5g -Dorg.gradle.parallel=false -Dorg.gradle.daemon=false"
+          JAVA_OPTS: "-Xmx4g"
+          GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx4g -Dorg.gradle.parallel=false -Dorg.gradle.daemon=false"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
