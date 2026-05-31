@@ -144,10 +144,10 @@ public class ProxyManager {
                         SharedConfig.deleteProxy(info);
                         FileLog.d("ProxyManager: Removed dead proxy " + info.address);
                         
-                        // Если удалили текущий - ищем замену
+                        // Если удалили текущий - просто отключаем прокси и ждем, 
+                        // пока другой успешный checkProxy() не включит его.
                         if (SharedConfig.currentProxy == info) {
-                            SharedConfig.currentProxy = null;
-                            switchToNextWorkingProxy();
+                            disableProxy();
                         }
                     } else {
                         // Прокси живой
@@ -160,13 +160,12 @@ public class ProxyManager {
         }
     }
 
-    private static void switchToNextWorkingProxy() {
-        if (SharedConfig.proxyList.isEmpty()) {
-            showNoProxiesAlert();
-            return;
-        }
-        // Берем первый из списка
-        applyProxy(SharedConfig.proxyList.get(0));
+    private static void disableProxy() {
+        SharedConfig.currentProxy = null;
+        SharedPreferences preferences = MessagesController.getGlobalMainSettings();
+        preferences.edit().putBoolean("proxy_enabled", false).apply();
+        ConnectionsManager.setProxySettings(false, "", 1080, "", "", "");
+        showNoProxiesAlert();
     }
 
     private static void applyProxy(SharedConfig.ProxyInfo info) {
