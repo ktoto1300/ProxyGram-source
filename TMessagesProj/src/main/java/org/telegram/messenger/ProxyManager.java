@@ -131,57 +131,75 @@ public class ProxyManager {
         }
     }
 
-    public static void checkAllProxies() {
-        if (SharedConfig.proxyList.isEmpty()) return;
+    private static boolean isChecking = false;
 
-        for (int i = 0; i < SharedConfig.proxyList.size(); i++) {
-            final SharedConfig.ProxyInfo info = SharedConfig.proxyList.get(i);
-            ConnectionsManager.getInstance(UserConfig.selectedAccount).checkProxy(info.address, info.port, info.username, info.password, info.secret, new RequestTimeDelegate() {
-                @Override
-                public void run(long time) {
-                    if (time == -1) {
-                        // Прокси мертв - удаляем из списка Telegram
-                        SharedConfig.deleteProxy(info);
-                        FileLog.d("ProxyManager: Removed dead proxy " + info.address);
-                        
-                        // Если удалили текущий - просто отключаем прокси и ждем, 
-                        // пока другой успешный checkProxy() не включит его.
-                        if (SharedConfig.currentProxy == info) {
-                            disableProxy();
-                        }
-                    } else {
-                        // Прокси живой
-                        if (SharedConfig.currentProxy == null || !SharedConfig.isProxyEnabled()) {
-                            applyProxy(info);
-                        }
+    public static void checkAllProxies() {
+        if (SharedConfig.proxyList.isEmpty() || isChecking) return;
+        isChecking = true;
+
+        new Thread(() -> {
+            boolean foundWorking = false;
+            for (int i = 0; i < SharedConfig.proxyList.size(); i++) {
+                final SharedConfig.ProxyInfo info = SharedConfig.proxyList.get(i);
+                
+                // Простая синхронная проверка через сокет (пинг), чтобы не спамить Telegram API
+                long ping = pingProxy(info.address, info.port);
+                
+                if (ping == -1) {
+                    // Мертв
+                    SharedConfig.deleteProxy(info);
+                    if (SharedConfig.currentProxy == info) {
+                        disableProxy();
+                    }
+                } else if (!foundWorking) {
+                    // Нашли первый рабочий
+                    foundWorking = true;
+                    // Авто-переключение: только если прокси уже были включены юзером
+                    if (SharedConfig.currentProxy == null && SharedConfig.isProxyEnabled()) {
+                        applyProxy(info);
                     }
                 }
-            });
+            }
+            isChecking = false;
+        }).start();
+    }
+
+    private static long pingProxy(String ip, int port) {
+        long start = System.currentTimeMillis();
+        try {
+            java.net.Socket socket = new java.net.Socket();
+            socket.connect(new java.net.InetSocketAddress(ip, port), 2000);
+            socket.close();
+            return System.currentTimeMillis() - start;
+        } catch (Exception e) {
+            return -1;
         }
     }
 
     private static void disableProxy() {
         SharedConfig.currentProxy = null;
-        SharedPreferences preferences = MessagesController.getGlobalMainSettings();
-        preferences.edit().putBoolean("proxy_enabled", false).apply();
-        ConnectionsManager.setProxySettings(false, "", 1080, "", "", "");
-        showNoProxiesAlert();
+        AndroidUtilities.runOnUIThread(() -> {
+            SharedPreferences preferences = MessagesController.getGlobalMainSettings();
+            preferences.edit().putBoolean("proxy_enabled", false).apply();
+            ConnectionsManager.setProxySettings(false, "", 1080, "", "", "");
+            showNoProxiesAlert();
+        });
     }
 
     private static void applyProxy(SharedConfig.ProxyInfo info) {
         SharedConfig.currentProxy = info;
-        
-        SharedPreferences preferences = MessagesController.getGlobalMainSettings();
-        preferences.edit()
-            .putBoolean("proxy_enabled", true)
-            .putString("proxy_ip", info.address)
-            .putInt("proxy_port", info.port)
-            .putString("proxy_user", info.username)
-            .putString("proxy_pass", info.password)
-            .putString("proxy_secret", info.secret)
-            .apply();
-
-        ConnectionsManager.setProxySettings(true, info.address, info.port, info.username, info.password, info.secret);
+        AndroidUtilities.runOnUIThread(() -> {
+            SharedPreferences preferences = MessagesController.getGlobalMainSettings();
+            preferences.edit()
+                .putBoolean("proxy_enabled", true)
+                .putString("proxy_ip", info.address)
+                .putInt("proxy_port", info.port)
+                .putString("proxy_user", info.username)
+                .putString("proxy_pass", info.password)
+                .putString("proxy_secret", info.secret)
+                .apply();
+            ConnectionsManager.setProxySettings(true, info.address, info.port, info.username, info.password, info.secret);
+        });
     }
 
     private static void showNoProxiesAlert() {
