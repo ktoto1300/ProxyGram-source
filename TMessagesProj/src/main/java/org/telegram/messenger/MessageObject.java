@@ -6850,7 +6850,7 @@ public class MessageObject {
             return false;
         } else if (searchType == ChatActivity.SEARCH_PUBLIC_POSTS) {
             return true;
-        } else if (messageOwner.noforwards) {
+        } else if (messageOwner.noforwards && !SharedConfig.allowScreenshotsInSecret) {
             return false;
         } else if (messageOwner.fwd_from != null && !isOutOwner() && messageOwner.fwd_from.saved_from_peer != null && getDialogId() == UserConfig.getInstance(currentAccount).getClientUserId()) {
             return true;
@@ -7533,8 +7533,8 @@ public class MessageObject {
         public TextLayoutBlocks(MessageObject messageObject, @NonNull CharSequence text, TextPaint textPaint, int width) {
             this.text = text;
             textWidth = 0;
-            boolean noforwards = messageObject != null && messageObject.messageOwner != null && messageObject.messageOwner.noforwards;
-            if (messageObject != null && !noforwards) {
+            boolean noforwards = messageObject != null && messageObject.messageOwner != null && messageObject.messageOwner.noforwards && !SharedConfig.allowScreenshotsInSecret;
+            if (messageObject != null && !noforwards && !SharedConfig.allowScreenshotsInSecret) {
                 TLRPC.Chat chat = MessagesController.getInstance(messageObject.currentAccount).getChat(-messageObject.getDialogId());
                 noforwards = chat != null && chat.noforwards;
             }
@@ -9677,7 +9677,7 @@ public class MessageObject {
     public boolean canForwardMessage() {
         if (isQuickReply()) return false;
         if (type == TYPE_GIFT_STARS) return false;
-        return !(messageOwner instanceof TLRPC.TL_message_secret) && !needDrawBluredPreview() && !isLiveLocation() && type != MessageObject.TYPE_PHONE_CALL && !isSponsored() && !messageOwner.noforwards;
+        return !(messageOwner instanceof TLRPC.TL_message_secret) && !needDrawBluredPreview() && !isLiveLocation() && type != MessageObject.TYPE_PHONE_CALL && !isSponsored() && (!messageOwner.noforwards || SharedConfig.allowScreenshotsInSecret);
     }
 
     public boolean canEditMedia() {

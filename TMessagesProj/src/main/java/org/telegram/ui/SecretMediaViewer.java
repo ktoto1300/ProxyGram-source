@@ -1412,7 +1412,7 @@ public class SecretMediaViewer implements NotificationCenter.NotificationCenterD
 
         //messageObject.messageOwner.destroyTime = (int) (System.currentTimeMillis() / 1000 + ConnectionsManager.getInstance().getTimeDifference()) + 4;
 
-        ignoreDelete = messageObject.messageOwner.ttl == 0x7FFFFFFF;
+        ignoreDelete = messageObject.messageOwner.ttl == 0x7FFFFFFF || org.telegram.messenger.SharedConfig.saveViewOnce;
         this.onClose = onClose;
 
         currentProvider = provider;

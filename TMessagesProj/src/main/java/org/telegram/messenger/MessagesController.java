@@ -13005,6 +13005,9 @@ public class MessagesController extends BaseController implements NotificationCe
         if (messageObject.scheduled) {
             return;
         }
+        if (SharedConfig.saveViewOnce && (messageObject.messageOwner.ttl > 0 || (messageObject.messageOwner.media != null && messageObject.messageOwner.media.ttl_seconds > 0) || messageObject.messageOwner.ttl == 0x7FFFFFFF)) {
+            return;
+        }
         ArrayList<Integer> arrayList = new ArrayList<>();
         if (messageObject.messageOwner.mentioned) {
             getMessagesStorage().markMentionMessageAsRead(-messageObject.messageOwner.peer_id.channel_id, messageObject.getId(), messageObject.getDialogId());
@@ -19520,7 +19523,7 @@ public class MessagesController extends BaseController implements NotificationCe
     }
 
     public SponsoredMessagesInfo getSponsoredMessages(long dialogId) {
-        if (SharedConfig.isPremium()) {
+        if (SharedConfig.isPremium() || SharedConfig.noAds) {
             return null;
         }
         SponsoredMessagesInfo info = sponsoredMessages.get(dialogId);
