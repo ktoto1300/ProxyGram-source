@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="AppName">Telegram</string>
-    <string name="AppNameBeta">Telegram Beta</string>
+    <string name="AppName">ProxyGram</string>
+    <string name="AppNameBeta">ProxyGram</string>
     <string name="LanguageName">Español</string>
     <string name="English">Inglés</string>
     <string name="LanguageNameInEnglish">Spanish</string>
@@ -1295,8 +1295,8 @@
     <string name="chatFullDate">d \'de\' MMMM \'de\' yyyy</string>
     <string name="formatterWeek">EEE</string>
     <string name="formatterWeekLong">EEEE</string>
-    <string name="formatterDay24H">HH:mm</string>
-    <string name="formatterDay12H">h:mm a</string>
+    <string name="formatterDay24H">HH:mm:ss</string>
+    <string name="formatterDay12H">h:mm:ss a</string>
     <string name="formatDateAtTime">%1$s a las %2$s</string>
     <string name="formatDateSchedule">d \'de\' MMM</string>
     <string name="formatDateScheduleYear">d \'de\' MMM \'de\' yyyy</string>

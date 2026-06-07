@@ -995,7 +995,9 @@ public class SecretMediaViewer implements NotificationCenter.NotificationCenterD
         } else {
             windowLayoutParams.flags = WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE;
         }
-        windowLayoutParams.flags |= WindowManager.LayoutParams.FLAG_SECURE;
+        if (!org.telegram.messenger.SharedConfig.allowScreenshotsInSecret) {
+            windowLayoutParams.flags |= WindowManager.LayoutParams.FLAG_SECURE;
+        }
         centerImage.setParentView(containerView);
         centerImage.setForceCrossfade(true);
 

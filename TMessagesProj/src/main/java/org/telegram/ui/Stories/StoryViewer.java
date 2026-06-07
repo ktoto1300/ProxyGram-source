@@ -2672,14 +2672,14 @@ public class StoryViewer implements NotificationCenter.NotificationCenterDelegat
             }
             if (ATTACH_TO_FRAGMENT) {
                 if (fragment.getParentActivity() != null) {
-                    if (allowScreenshots) {
+                    if (allowScreenshots || org.telegram.messenger.SharedConfig.allowScreenshotsInSecret) {
                         fragment.getParentActivity().getWindow().clearFlags(WindowManager.LayoutParams.FLAG_SECURE);
                     } else {
                         fragment.getParentActivity().getWindow().addFlags(WindowManager.LayoutParams.FLAG_SECURE);
                     }
                 }
             } else {
-                if (allowScreenshots) {
+                if (allowScreenshots || org.telegram.messenger.SharedConfig.allowScreenshotsInSecret) {
                     windowLayoutParams.flags &= ~WindowManager.LayoutParams.FLAG_SECURE;
                 } else {
                     windowLayoutParams.flags |= WindowManager.LayoutParams.FLAG_SECURE;

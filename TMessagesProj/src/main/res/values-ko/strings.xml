@@ -1116,7 +1116,7 @@
     <string name="chatFullDate">yyyy년 MMMM d일</string>
     <string name="formatterWeek">EEE</string>
     <string name="formatterWeekLong">EEEE</string>
-    <string name="formatterDay24H">HH:mm</string>
+    <string name="formatterDay24H">HH:mm:ss</string>
     <string name="formatterDay12H">a h:mm</string>
     <string name="formatDateAtTime">%1$s %2$s</string>
     <string name="formatDateSchedule">M\'월\' d\'일\'</string>

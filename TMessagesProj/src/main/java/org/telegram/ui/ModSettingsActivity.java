@@ -44,7 +44,8 @@ public class ModSettingsActivity extends BaseFragment {
     public View createView(Context context) {
         actionBar.setBackButtonImage(R.drawable.ic_ab_back);
         actionBar.setAllowOverlayTitle(true);
-        actionBar.setTitle("ProxyGram Settings");
+        actionBar.setTitle(LocaleController.getString("ProxyGramSettings", R.string.ProxyGramSettings));
+
         
         long currentUserId = UserConfig.getInstance(currentAccount).getClientUserId();
         
@@ -97,7 +98,7 @@ public class ModSettingsActivity extends BaseFragment {
                 SharedConfig.proxyAutoUpdate = !SharedConfig.proxyAutoUpdate;
             } else if (position == proxyUpdateIntervalRow) {
                 org.telegram.ui.ActionBar.AlertDialog.Builder builder = new org.telegram.ui.ActionBar.AlertDialog.Builder(getParentActivity());
-                builder.setTitle("Update Interval (hours)");
+                builder.setTitle(LocaleController.getString("UpdateIntervalTitle", R.string.UpdateIntervalTitle));
                 final android.widget.EditText editText = new android.widget.EditText(getParentActivity());
                 editText.setInputType(android.text.InputType.TYPE_CLASS_NUMBER);
                 editText.setText(String.valueOf(SharedConfig.proxyUpdateInterval));
@@ -123,6 +124,55 @@ public class ModSettingsActivity extends BaseFragment {
             if (view instanceof TextCheckCell) {
                 ((TextCheckCell) view).setChecked(!((TextCheckCell) view).isChecked());
             }
+        });
+
+        listView.setOnItemLongClickListener((view, position) -> {
+            String infoText = "";
+            String title = "";
+            if (position == ghostModeRow) {
+                title = LocaleController.getString("GhostMode", R.string.GhostMode);
+                infoText = LocaleController.getString("GhostModeInfo", R.string.GhostModeInfo);
+            } else if (position == hideOnlineRow) {
+                title = LocaleController.getString("HideOnlineStatus", R.string.HideOnlineStatus);
+                infoText = LocaleController.getString("HideOnlineStatusInfo", R.string.HideOnlineStatusInfo);
+            } else if (position == antiDeleteRow) {
+                title = LocaleController.getString("AntiDeleteMessages", R.string.AntiDeleteMessages);
+                infoText = LocaleController.getString("AntiDeleteMessagesInfo", R.string.AntiDeleteMessagesInfo);
+            } else if (position == antiViewOnceRow) {
+                title = LocaleController.getString("AntiViewOnce", R.string.AntiViewOnce);
+                infoText = LocaleController.getString("AntiViewOnceInfo", R.string.AntiViewOnceInfo);
+            } else if (position == noAdsRow) {
+                title = LocaleController.getString("NoAds", R.string.NoAds);
+                infoText = LocaleController.getString("NoAdsInfo", R.string.NoAdsInfo);
+            } else if (position == noSponsorRow) {
+                title = LocaleController.getString("BlockProxySponsors", R.string.BlockProxySponsors);
+                infoText = LocaleController.getString("BlockProxySponsorsInfo", R.string.BlockProxySponsorsInfo);
+            } else if (position == confirmCallRow) {
+                title = LocaleController.getString("ConfirmBeforeCall", R.string.ConfirmBeforeCall);
+                infoText = LocaleController.getString("ConfirmBeforeCallInfo", R.string.ConfirmBeforeCallInfo);
+            } else if (position == forceMtproto2Row) {
+                title = LocaleController.getString("ForcedMTProto2", R.string.ForcedMTProto2);
+                infoText = LocaleController.getString("ForcedMTProto2Info", R.string.ForcedMTProto2Info);
+            } else if (position == hidePhoneRow) {
+                title = LocaleController.getString("HideMyPhoneNumber", R.string.HideMyPhoneNumber);
+                infoText = LocaleController.getString("HideMyPhoneNumberInfo", R.string.HideMyPhoneNumberInfo);
+            } else if (position == allowScreenshotsRow) {
+                title = LocaleController.getString("AllowScreenshots", R.string.AllowScreenshots);
+                infoText = LocaleController.getString("AllowScreenshotsInfo", R.string.AllowScreenshotsInfo);
+            } else if (position == proxyAutoUpdateRow) {
+                title = LocaleController.getString("AutoUpdateProxies", R.string.AutoUpdateProxies);
+                infoText = LocaleController.getString("AutoUpdateProxiesInfo", R.string.AutoUpdateProxiesInfo);
+            }
+
+            if (!infoText.isEmpty()) {
+                org.telegram.ui.ActionBar.AlertDialog.Builder builder = new org.telegram.ui.ActionBar.AlertDialog.Builder(getParentActivity());
+                builder.setTitle(title);
+                builder.setMessage(infoText);
+                builder.setPositiveButton("OK", null);
+                showDialog(builder.create());
+                return true;
+            }
+            return false;
         });
 
         return fragmentView;
@@ -175,31 +225,31 @@ public class ModSettingsActivity extends BaseFragment {
         public void onBindViewHolder(RecyclerView.ViewHolder holder, int position) {
             TextCheckCell checkCell = (TextCheckCell) holder.itemView;
             if (position == ghostModeRow) {
-                checkCell.setTextAndCheck("Ghost Mode", SharedConfig.ghostMode, true);
+                checkCell.setTextAndCheck(LocaleController.getString("GhostMode", R.string.GhostMode), SharedConfig.ghostMode, true);
             } else if (position == hideOnlineRow) {
-                checkCell.setTextAndCheck("Hide Online Status", SharedConfig.hideOnline, true);
+                checkCell.setTextAndCheck(LocaleController.getString("HideOnlineStatus", R.string.HideOnlineStatus), SharedConfig.hideOnline, true);
             } else if (position == antiDeleteRow) {
-                checkCell.setTextAndCheck("Anti-Delete Messages", SharedConfig.saveDeleted, true);
+                checkCell.setTextAndCheck(LocaleController.getString("AntiDeleteMessages", R.string.AntiDeleteMessages), SharedConfig.saveDeleted, true);
             } else if (position == antiViewOnceRow) {
-                checkCell.setTextAndCheck("Anti-View Once", SharedConfig.saveViewOnce, true);
+                checkCell.setTextAndCheck(LocaleController.getString("AntiViewOnce", R.string.AntiViewOnce), SharedConfig.saveViewOnce, true);
             } else if (position == noAdsRow) {
-                checkCell.setTextAndCheck("No-Ads (Hide Sponsored)", SharedConfig.noAds, true);
+                checkCell.setTextAndCheck(LocaleController.getString("NoAds", R.string.NoAds), SharedConfig.noAds, true);
             } else if (position == noSponsorRow) {
-                checkCell.setTextAndCheck("Block Proxy Sponsors", SharedConfig.noSponsor, true);
+                checkCell.setTextAndCheck(LocaleController.getString("BlockProxySponsors", R.string.BlockProxySponsors), SharedConfig.noSponsor, true);
             } else if (position == confirmCallRow) {
-                checkCell.setTextAndCheck("Confirm Before Call", SharedConfig.confirmCall, true);
+                checkCell.setTextAndCheck(LocaleController.getString("ConfirmBeforeCall", R.string.ConfirmBeforeCall), SharedConfig.confirmCall, true);
             } else if (position == forceMtproto2Row) {
-                checkCell.setTextAndCheck("Forced MTProto 2.0", SharedConfig.forceMtproto2, true);
+                checkCell.setTextAndCheck(LocaleController.getString("ForcedMTProto2", R.string.ForcedMTProto2), SharedConfig.forceMtproto2, true);
             } else if (position == hidePhoneRow) {
-                checkCell.setTextAndCheck("Hide My Phone Number", SharedConfig.hidePhone, true);
+                checkCell.setTextAndCheck(LocaleController.getString("HideMyPhoneNumber", R.string.HideMyPhoneNumber), SharedConfig.hidePhone, true);
             } else if (position == allowScreenshotsRow) {
-                checkCell.setTextAndCheck("Allow Screenshots", SharedConfig.allowScreenshotsInSecret, true);
+                checkCell.setTextAndCheck(LocaleController.getString("AllowScreenshots", R.string.AllowScreenshots), SharedConfig.allowScreenshotsInSecret, true);
             } else if (position == proxyAutoUpdateRow) {
-                checkCell.setTextAndCheck("Auto-Update Proxies", SharedConfig.proxyAutoUpdate, true);
+                checkCell.setTextAndCheck(LocaleController.getString("AutoUpdateProxies", R.string.AutoUpdateProxies), SharedConfig.proxyAutoUpdate, true);
             } else if (position == proxyUpdateIntervalRow) {
-                checkCell.setTextAndCheck("Update Interval: " + SharedConfig.proxyUpdateInterval + "h", false, true);
+                checkCell.setTextAndCheck(LocaleController.formatString("UpdateInterval", R.string.UpdateInterval, SharedConfig.proxyUpdateInterval), false, true);
             } else if (position == premiumRow) {
-                checkCell.setTextAndCheck("Your ID: " + UserConfig.getInstance(currentAccount).getClientUserId(), false, false);
+                checkCell.setTextAndCheck(LocaleController.formatString("YourID", R.string.YourID, UserConfig.getInstance(currentAccount).getClientUserId()), false, false);
             }
         }
 

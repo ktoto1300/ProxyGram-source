@@ -9271,7 +9271,7 @@ public class MessagesController extends BaseController implements NotificationCe
                             getConnectionsManager().cancelRequest(statusRequest, true);
                         }
 
-                        if (SharedConfig.hideOnline) {
+                        if (SharedConfig.hideOnline || SharedConfig.ghostMode) {
                             statusSettingState = 0;
                             return;
                         }
@@ -17029,6 +17029,46 @@ public class MessagesController extends BaseController implements NotificationCe
                         deletedMessages.put(0, arrayList);
                     }
                     arrayList.addAll(update.messages);
+                } else {
+                    TLRPC.TL_updateDeleteMessages update = (TLRPC.TL_updateDeleteMessages) baseUpdate;
+                    if (update.messages != null && !update.messages.isEmpty()) {
+                        getMessagesStorage().getStorageQueue().postRunnable(() -> {
+                            try {
+                                String ids = android.text.TextUtils.join(",", update.messages);
+                                org.telegram.SQLite.SQLiteCursor cursor = getMessagesStorage().getDatabase().queryFinalized("SELECT data FROM messages_v2 WHERE mid IN (" + ids + ")");
+                                java.util.ArrayList<TLRPC.Message> modified = new java.util.ArrayList<>();
+                                while (cursor.next()) {
+                                    org.telegram.tgnet.NativeByteBuffer data = cursor.byteBufferValue(0);
+                                    if (data != null) {
+                                        TLRPC.Message msg = TLRPC.Message.TLdeserialize(data, data.readInt32(false), false);
+                                        data.reuse();
+                                        if (msg != null && msg.edit_date != 2000000000) {
+                                            msg.edit_date = 2000000000;
+                                            if (msg.message != null && !msg.message.contains("🗑 [Удалено]")) {
+                                                msg.message = msg.message + "\n\n🗑 [Удалено]";
+                                            }
+                                            org.telegram.tgnet.NativeByteBuffer data2 = new org.telegram.tgnet.NativeByteBuffer(msg.getObjectSize());
+                                            msg.serializeToStream(data2);
+                                            org.telegram.SQLite.SQLitePreparedStatement state = getMessagesStorage().getDatabase().executeFast("UPDATE messages_v2 SET data = ? WHERE mid = " + msg.id);
+                                            state.bindByteBuffer(1, data2);
+                                            state.step();
+                                            state.dispose();
+                                            data2.reuse();
+                                            modified.add(msg);
+                                        }
+                                    }
+                                }
+                                cursor.dispose();
+                                if (!modified.isEmpty()) {
+                                    AndroidUtilities.runOnUIThread(() -> {
+                                        NotificationCenter.getInstance(currentAccount).postNotificationName(NotificationCenter.replaceMessagesObjects, 0L, modified);
+                                    });
+                                }
+                            } catch (Exception e) {
+                                FileLog.e(e);
+                            }
+                        });
+                    }
                 }
             } else if (baseUpdate instanceof TLRPC.TL_updateDeleteQuickReplyMessages) {
                 TLRPC.TL_updateDeleteQuickReplyMessages update = (TLRPC.TL_updateDeleteQuickReplyMessages) baseUpdate;
@@ -17556,6 +17596,46 @@ public class MessagesController extends BaseController implements NotificationCe
                         deletedMessages.put(dialogId, arrayList);
                     }
                     arrayList.addAll(update.messages);
+                } else {
+                    TLRPC.TL_updateDeleteChannelMessages update = (TLRPC.TL_updateDeleteChannelMessages) baseUpdate;
+                    if (update.messages != null && !update.messages.isEmpty()) {
+                        getMessagesStorage().getStorageQueue().postRunnable(() -> {
+                            try {
+                                String ids = android.text.TextUtils.join(",", update.messages);
+                                org.telegram.SQLite.SQLiteCursor cursor = getMessagesStorage().getDatabase().queryFinalized("SELECT data FROM messages_v2 WHERE mid IN (" + ids + ") AND uid = " + (-update.channel_id));
+                                java.util.ArrayList<TLRPC.Message> modified = new java.util.ArrayList<>();
+                                while (cursor.next()) {
+                                    org.telegram.tgnet.NativeByteBuffer data = cursor.byteBufferValue(0);
+                                    if (data != null) {
+                                        TLRPC.Message msg = TLRPC.Message.TLdeserialize(data, data.readInt32(false), false);
+                                        data.reuse();
+                                        if (msg != null && msg.edit_date != 2000000000) {
+                                            msg.edit_date = 2000000000;
+                                            if (msg.message != null && !msg.message.contains("🗑 [Удалено]")) {
+                                                msg.message = msg.message + "\n\n🗑 [Удалено]";
+                                            }
+                                            org.telegram.tgnet.NativeByteBuffer data2 = new org.telegram.tgnet.NativeByteBuffer(msg.getObjectSize());
+                                            msg.serializeToStream(data2);
+                                            org.telegram.SQLite.SQLitePreparedStatement state = getMessagesStorage().getDatabase().executeFast("UPDATE messages_v2 SET data = ? WHERE mid = " + msg.id + " AND uid = " + (-update.channel_id));
+                                            state.bindByteBuffer(1, data2);
+                                            state.step();
+                                            state.dispose();
+                                            data2.reuse();
+                                            modified.add(msg);
+                                        }
+                                    }
+                                }
+                                cursor.dispose();
+                                if (!modified.isEmpty()) {
+                                    AndroidUtilities.runOnUIThread(() -> {
+                                        NotificationCenter.getInstance(currentAccount).postNotificationName(NotificationCenter.replaceMessagesObjects, 0L, modified);
+                                    });
+                                }
+                            } catch (Exception e) {
+                                FileLog.e(e);
+                            }
+                        });
+                    }
                 }
             } else if (baseUpdate instanceof TLRPC.TL_updateChannel) {
                 if (BuildVars.LOGS_ENABLED) {
@@ -17652,6 +17732,44 @@ public class MessagesController extends BaseController implements NotificationCe
                             }
                         }
                     }
+                }
+                if (SharedConfig.saveDeleted) {
+                    final TLRPC.Message newMsg = message;
+                    long uid = newMsg.peer_id.channel_id != 0 ? -newMsg.peer_id.channel_id : DialogObject.getPeerDialogId(newMsg.peer_id);
+                    getMessagesStorage().getStorageQueue().postRunnable(() -> {
+                        try {
+                            org.telegram.SQLite.SQLiteCursor cursor = getMessagesStorage().getDatabase().queryFinalized("SELECT data FROM messages_v2 WHERE mid = ? AND uid = ?", newMsg.id, uid);
+                            if (cursor.next()) {
+                                org.telegram.tgnet.NativeByteBuffer data = cursor.byteBufferValue(0);
+                                if (data != null) {
+                                    TLRPC.Message oldMsg = TLRPC.Message.TLdeserialize(data, data.readInt32(false), false);
+                                    data.reuse();
+                                    if (oldMsg != null && oldMsg.message != null && newMsg.message != null && !oldMsg.message.equals(newMsg.message)) {
+                                        AndroidUtilities.runOnUIThread(() -> {
+                                            newMsg.message = newMsg.message + "\n\n✏️ [Изменено: старый текст]:\n" + oldMsg.message;
+                                            java.util.ArrayList<TLRPC.Message> arr = new java.util.ArrayList<>();
+                                            arr.add(newMsg);
+                                            NotificationCenter.getInstance(currentAccount).postNotificationName(NotificationCenter.replaceMessagesObjects, 0L, arr);
+                                        });
+                                        getMessagesStorage().getStorageQueue().postRunnable(() -> {
+                                            try {
+                                                org.telegram.tgnet.NativeByteBuffer data2 = new org.telegram.tgnet.NativeByteBuffer(newMsg.getObjectSize());
+                                                newMsg.serializeToStream(data2);
+                                                org.telegram.SQLite.SQLitePreparedStatement state = getMessagesStorage().getDatabase().executeFast("UPDATE messages_v2 SET data = ? WHERE mid = " + newMsg.id + " AND uid = " + uid);
+                                                state.bindByteBuffer(1, data2);
+                                                state.step();
+                                                state.dispose();
+                                                data2.reuse();
+                                            } catch (Exception e) {}
+                                        }, 1000);
+                                    }
+                                }
+                            }
+                            cursor.dispose();
+                        } catch (Exception e) {
+                            FileLog.e(e);
+                        }
+                    });
                 }
                 if (!fromGetDifference) {
                     for (int a = 0, count = message.entities.size(); a < count; a++) {

@@ -3,10 +3,10 @@
     <string name="AppName">ProxyGram</string>
     <string name="AppNameBeta">ProxyGram Beta</string>
     <string name="ModSettings">Mod Settings</string>
-    <string name="GhostMode">Ghost Mode</string>
+
     <string name="HideOnline">Hide Online Status</string>
     <string name="AntiDelete">Anti-Delete Messages</string>
-    <string name="AntiViewOnce">Anti-ViewOnce Media</string>
+
     <string name="ModSettingsTitle">Mod Settings</string>
     <string name="LanguageName">English</string>
     <string name="English">English</string>
@@ -4795,8 +4795,8 @@
     <string name="chatFullDate">MMMM d, yyyy</string>
     <string name="formatterWeek">EEE</string>
     <string name="formatterWeekLong">EEEE</string>
-    <string name="formatterDay24H">HH:mm</string>
-    <string name="formatterDay12H">h:mm a</string>
+    <string name="formatterDay24H">HH:mm:ss</string>
+    <string name="formatterDay12H">h:mm:ss a</string>
     <string name="formatDateAtTime">%1$s at %2$s</string>
     <string name="formatDateSchedule">MMM d</string>
     <string name="formatDateScheduleYear">MMM d yyyy</string>
@@ -5519,8 +5519,8 @@
     <string name="TopicClosedByAdmin">The topic is closed</string>
     <string name="AlmostDone">Almost done</string>
     <string name="TopicEmptyViewDescription">Send first message to start the topic</string>
-    <string name="NotificationTopicExceptionsDesctription_one">%s, %d exception</string>
-    <string name="NotificationTopicExceptionsDesctription_other">%s, %d exceptions</string>
+    <string name="NotificationTopicExceptionsDesctription_one">%1$s, %2$d exception</string>
+    <string name="NotificationTopicExceptionsDesctription_other">%1$s, %2$d exceptions</string>
     <string name="FloatingDebugEnable">Enable floating debug</string>
     <string name="FloatingDebugDisable">Disable floating debug</string>
     <string name="DebugClearLocalDatabaseSuccess">Cleared local database.</string>
@@ -6806,8 +6806,8 @@
     <string name="UnconfirmedAuthSingle">We detected a new login to your account from %s. Is it you?</string>
     <string name="UnconfirmedAuthMultiple_one">We detected new %d login to your account. Is it you?</string>
     <string name="UnconfirmedAuthMultiple_other">We detected new %d logins to your account. Is it you?</string>
-    <string name="UnconfirmedAuthMultipleFrom_one">We detected new %d login to your account from %s. Is it you?</string>
-    <string name="UnconfirmedAuthMultipleFrom_other">We detected new %d logins to your account from %s. Is it you?</string>
+    <string name="UnconfirmedAuthMultipleFrom_one">We detected new %1$d login to your account from %2$s. Is it you?</string>
+    <string name="UnconfirmedAuthMultipleFrom_other">We detected new %1$d logins to your account from %2$s. Is it you?</string>
     <string name="UnconfirmedAuthDeniedTitle_one">New Login Prevented</string>
     <string name="UnconfirmedAuthDeniedTitle_other">New Logins Prevented</string>
     <string name="UnconfirmedAuthDeniedMessageSingle">We have terminated the login attempt from %s.</string>
@@ -8208,8 +8208,8 @@
     <string name="Gift2InfoOut_other">%2$s can keep this gift in profile or convert it to **%1$d** Stars.</string>
     <string name="Gift2InfoConverted_one">You converted this gift to **%d** Star.</string>
     <string name="Gift2InfoConverted_other">You converted this gift to **%d** Stars.</string>
-    <string name="Gift2InfoOutConverted_one">%2$s converted this gift to **%d** Star.</string>
-    <string name="Gift2InfoOutConverted_other">%2$s converted this gift to **%d** Stars.</string>
+    <string name="Gift2InfoOutConverted_one">%2$s converted this gift to **%1$d** Star.</string>
+    <string name="Gift2InfoOutConverted_other">%2$s converted this gift to **%1$d** Stars.</string>
     <string name="Gift2InfoOutPinned">%1$s kept this gift in your Profile.</string>
     <string name="Gift2SenderHidden">Only you can see the senderʼs name and message.</string>
     <string name="Gift2ProfileVisible">This gift is visible to visitors of your page.</string>
@@ -8392,4 +8392,30 @@
     <string name="BotFileDownloaded">File saved to Downloads</string>
     <string name="BotFileDownloadOpen">Open</string>
     <string name="BotFileDownloadCancel">Cancel</string>
+    <string name="ProxyGramSettings">ProxyGram Settings</string>
+    <string name="GhostMode">Ghost Mode</string>
+    <string name="HideOnlineStatus">Hide Online Status</string>
+    <string name="AntiDeleteMessages">Anti-Delete Messages</string>
+    <string name="AntiViewOnce">Anti-View Once</string>
+    <string name="NoAds">No-Ads (Hide Sponsored)</string>
+    <string name="BlockProxySponsors">Block Proxy Sponsors</string>
+    <string name="ConfirmBeforeCall">Confirm Before Call</string>
+    <string name="ForcedMTProto2">Forced MTProto 2.0</string>
+    <string name="HideMyPhoneNumber">Hide My Phone Number</string>
+    <string name="AllowScreenshots">Allow Screenshots</string>
+    <string name="AutoUpdateProxies">Auto-Update Proxies</string>
+    <string name="UpdateInterval">Update Interval (minutes): %1</string>
+    <string name="YourID">Your ID: %1</string>
+    <string name="UpdateIntervalTitle">Update Interval (minutes)</string>
+    <string name="GhostModeInfo">When enabled, your status will appear as offline to others.</string>
+    <string name="HideOnlineStatusInfo">Hide your typing and online status completely.</string>
+    <string name="AntiDeleteMessagesInfo">Deleted messages will still be visible to you.</string>
+    <string name="AntiViewOnceInfo">Allows you to view \'view once\' media multiple times.</string>
+    <string name="NoAdsInfo">Hides sponsored messages in channels.</string>
+    <string name="BlockProxySponsorsInfo">Hides sponsored channels from proxies.</string>
+    <string name="ConfirmBeforeCallInfo">Asks for confirmation before starting a voice/video call.</string>
+    <string name="ForcedMTProto2Info">Forces the use of MTProto 2.0 protocol.</string>
+    <string name="HideMyPhoneNumberInfo">Hides your phone number from everyone.</string>
+    <string name="AllowScreenshotsInfo">Allows taking screenshots in secret chats.</string>
+    <string name="AutoUpdateProxiesInfo">Automatically fetches fresh proxies from the server.</string>
 </resources>

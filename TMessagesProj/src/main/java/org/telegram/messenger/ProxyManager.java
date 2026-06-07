@@ -27,14 +27,24 @@ public class ProxyManager {
         if (started) return;
         started = true;
 
+        if (SharedConfig.proxyList.isEmpty()) {
+            // Add fallback proxies in case GitHub is blocked and we can't fetch the list
+            SharedConfig.ProxyInfo fallback1 = new SharedConfig.ProxyInfo("proxy.mtproto.co", 443, "", "", "ee112233445566778899aabbccddeeff");
+            SharedConfig.ProxyInfo fallback2 = new SharedConfig.ProxyInfo("1.1.1.1", 1080, "telegram", "telegram", ""); // Dummy socks5 example
+            SharedConfig.proxyList.add(fallback1);
+            SharedConfig.proxyList.add(fallback2);
+            SharedConfig.saveProxyList();
+        }
+
+
         new Thread(() -> {
             while (true) {
                 if (SharedConfig.proxyAutoUpdate) {
                     fetchAndApplyProxies();
                 }
                 try {
-                    // Интервал проверки берется из настроек (в часах)
-                    Thread.sleep(Math.max(1, SharedConfig.proxyUpdateInterval) * 60 * 60 * 1000L);
+                    // Интервал проверки берется из настроек (в минутах)
+                    Thread.sleep(Math.max(1, SharedConfig.proxyUpdateInterval) * 60 * 1000L);
                 } catch (InterruptedException ignored) {}
             }
         }).start();
