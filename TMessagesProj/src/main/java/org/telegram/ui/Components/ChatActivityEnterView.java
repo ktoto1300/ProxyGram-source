@@ -220,9 +220,12 @@ public class ChatActivityEnterView extends BlurredFrameLayout implements Notific
     public boolean voiceOnce;
     public boolean onceVisible;
 
+    private boolean liveDraftScheduled = false;
+
     private final Runnable liveDraftRunnable = new Runnable() {
         @Override
         public void run() {
+            liveDraftScheduled = false;
             if (org.telegram.messenger.SharedConfig.liveDrafts && org.telegram.messenger.SharedConfig.isPremium() && messageEditText != null) {
                 org.telegram.messenger.MediaDataController.getInstance(currentAccount).saveDraft(
                     dialog_id,
@@ -5249,8 +5252,12 @@ public class ChatActivityEnterView extends BlurredFrameLayout implements Notific
             @Override
             public void afterTextChanged(Editable editable) {
                 if (org.telegram.messenger.SharedConfig.liveDrafts && org.telegram.messenger.SharedConfig.isPremium()) {
-                    org.telegram.messenger.AndroidUtilities.cancelRunOnUIThread(liveDraftRunnable);
-                    org.telegram.messenger.AndroidUtilities.runOnUIThread(liveDraftRunnable, 250);
+                    // Не отменяем уже запланированное сохранение — иначе при быстром вводе
+                    // runnable постоянно сдвигается и никогда не срабатывает
+                    if (!liveDraftScheduled) {
+                        liveDraftScheduled = true;
+                        org.telegram.messenger.AndroidUtilities.runOnUIThread(liveDraftRunnable, 500);
+                    }
                 }
                 if (ignorePrevTextChange) {
                     return;

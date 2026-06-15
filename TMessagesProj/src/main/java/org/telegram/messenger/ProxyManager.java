@@ -18,37 +18,71 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Set;
 
 public class ProxyManager {
     private static final String PROXY_LIST_URL_DEFAULT = "https://raw.githubusercontent.com/ktoto1300/Proxy-s/main/proxies.txt";
+    private static final String PREF_BLACKLIST = "proxy_blacklist";
+    private static final String PREF_NAME = "proxygram_manager";
+
     private static boolean started = false;
+    private static boolean isChecking = false;
+
+    // ─── Blacklist helpers ────────────────────────────────────────────────────
+
+    /** Уникальный ключ прокси для чёрного списка: "host:port:secret" */
+    private static String proxyKey(SharedConfig.ProxyInfo p) {
+        return (p.address + ":" + p.port + ":" + (p.secret != null ? p.secret : "")).toLowerCase();
+    }
+
+    private static Set<String> loadBlacklist() {
+        SharedPreferences prefs = ApplicationLoader.applicationContext
+                .getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
+        return new HashSet<>(prefs.getStringSet(PREF_BLACKLIST, new HashSet<>()));
+    }
+
+    private static void saveBlacklist(Set<String> blacklist) {
+        ApplicationLoader.applicationContext
+                .getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
+                .edit().putStringSet(PREF_BLACKLIST, blacklist).apply();
+    }
+
+    private static void addToBlacklist(SharedConfig.ProxyInfo info) {
+        Set<String> bl = loadBlacklist();
+        bl.add(proxyKey(info));
+        saveBlacklist(bl);
+        FileLog.d("ProxyManager: blacklisted " + proxyKey(info));
+    }
+
+    private static boolean isBlacklisted(SharedConfig.ProxyInfo info) {
+        return loadBlacklist().contains(proxyKey(info));
+    }
+
+    // ─── Start ────────────────────────────────────────────────────────────────
 
     public static void start(Context context) {
         if (started) return;
         started = true;
 
-        if (SharedConfig.proxyList.isEmpty()) {
-            // Add fallback proxies in case GitHub is blocked and we can't fetch the list
-            SharedConfig.ProxyInfo fallback1 = new SharedConfig.ProxyInfo("proxy.mtproto.co", 443, "", "", "ee112233445566778899aabbccddeeff");
-            SharedConfig.ProxyInfo fallback2 = new SharedConfig.ProxyInfo("1.1.1.1", 1080, "telegram", "telegram", ""); // Dummy socks5 example
-            SharedConfig.proxyList.add(fallback1);
-            SharedConfig.proxyList.add(fallback2);
-            SharedConfig.saveProxyList();
-        }
-
+        // НЕ добавляем fallback-прокси — они перезаписывают сохранённый список
 
         new Thread(() -> {
+            // Сначала проверяем уже сохранённые прокси
+            checkAllProxies();
+
             while (true) {
                 if (SharedConfig.proxyAutoUpdate) {
                     fetchAndApplyProxies();
                 }
                 try {
-                    // Интервал проверки берется из настроек (в минутах)
                     Thread.sleep(Math.max(1, SharedConfig.proxyUpdateInterval) * 60 * 1000L);
                 } catch (InterruptedException ignored) {}
             }
         }).start();
     }
+
+    // ─── Fetch ────────────────────────────────────────────────────────────────
 
     public static void fetchAndApplyProxies() {
         new Thread(() -> {
@@ -67,7 +101,7 @@ public class ProxyManager {
                     if (line.isEmpty() || line.startsWith("#")) continue;
 
                     SharedConfig.ProxyInfo info = parseProxyLine(line);
-                    if (info != null) {
+                    if (info != null && !isBlacklisted(info)) {
                         newProxies.add(info);
                     }
                 }
@@ -83,9 +117,10 @@ public class ProxyManager {
         }).start();
     }
 
+    // ─── Parse ────────────────────────────────────────────────────────────────
+
     private static SharedConfig.ProxyInfo parseProxyLine(String line) {
         try {
-            // Поддержка ссылок tg://proxy и https://t.me/proxy
             if (line.startsWith("tg://proxy") || line.startsWith("https://t.me/proxy")) {
                 Uri uri = Uri.parse(line.replace("https://t.me/proxy", "tg://proxy"));
                 String server = uri.getQueryParameter("server");
@@ -95,23 +130,20 @@ public class ProxyManager {
                 String pass = uri.getQueryParameter("pass");
 
                 if (server != null && portStr != null) {
-                    return new SharedConfig.ProxyInfo(server, Integer.parseInt(portStr), user != null ? user : "", pass != null ? pass : "", secret != null ? secret : "");
+                    return new SharedConfig.ProxyInfo(server, Integer.parseInt(portStr),
+                            user != null ? user : "", pass != null ? pass : "", secret != null ? secret : "");
                 }
-            } 
-            
-            // Поддержка формата server:port:secret или server:port:user:pass
+            }
+
             String[] parts = line.split(":");
             if (parts.length >= 2) {
                 String server = parts[0];
                 int port = Integer.parseInt(parts[1]);
                 if (parts.length == 3) {
-                    // MTProto secret
                     return new SharedConfig.ProxyInfo(server, port, "", "", parts[2]);
                 } else if (parts.length == 4) {
-                    // Socks5 user/pass
                     return new SharedConfig.ProxyInfo(server, port, parts[2], parts[3], "");
-                } else if (parts.length == 2) {
-                    // Simple server:port
+                } else {
                     return new SharedConfig.ProxyInfo(server, port, "", "", "");
                 }
             }
@@ -119,12 +151,20 @@ public class ProxyManager {
         return null;
     }
 
-        private static void updateTelegramProxyList(ArrayList<SharedConfig.ProxyInfo> newProxies) {
+    // ─── Update list ──────────────────────────────────────────────────────────
+
+    private static void updateTelegramProxyList(ArrayList<SharedConfig.ProxyInfo> newProxies) {
         if (SharedConfig.isPremium()) {
-            newProxies.add(new SharedConfig.ProxyInfo("premium.proxygram.net", 443, "", "", "ee112233445566778899aabbccddeeff"));
+            SharedConfig.ProxyInfo premProxy = new SharedConfig.ProxyInfo("premium.proxygram.net", 443, "", "", "ee112233445566778899aabbccddeeff");
+            if (!isBlacklisted(premProxy)) newProxies.add(premProxy);
         }
+
         boolean changed = false;
+        Set<String> blacklist = loadBlacklist();
+
         for (SharedConfig.ProxyInfo newProxy : newProxies) {
+            if (blacklist.contains(proxyKey(newProxy))) continue; // пропускаем занесённые в ЧС
+
             boolean exists = false;
             for (SharedConfig.ProxyInfo existing : SharedConfig.proxyList) {
                 if (existing.address.equalsIgnoreCase(newProxy.address) && existing.port == newProxy.port) {
@@ -140,12 +180,13 @@ public class ProxyManager {
 
         if (changed) {
             SharedConfig.saveProxyList();
-            org.telegram.messenger.AndroidUtilities.runOnUIThread(() -> org.telegram.messenger.NotificationCenter.getGlobalInstance().postNotificationName(org.telegram.messenger.NotificationCenter.proxySettingsChanged));
+            AndroidUtilities.runOnUIThread(() ->
+                    NotificationCenter.getGlobalInstance().postNotificationName(NotificationCenter.proxySettingsChanged));
             checkAllProxies();
         }
     }
 
-    private static boolean isChecking = false;
+    // ─── Check all proxies ────────────────────────────────────────────────────
 
     public static void checkAllProxies() {
         if (SharedConfig.proxyList.isEmpty() || isChecking) return;
@@ -153,31 +194,58 @@ public class ProxyManager {
 
         new Thread(() -> {
             boolean foundWorking = false;
+            Set<String> blacklist = loadBlacklist();
+            ArrayList<SharedConfig.ProxyInfo> toRemove = new ArrayList<>();
+
             for (int i = 0; i < SharedConfig.proxyList.size(); i++) {
                 final SharedConfig.ProxyInfo info = SharedConfig.proxyList.get(i);
-                
+
+                // Если уже в чёрном списке — удаляем из активного списка
+                if (blacklist.contains(proxyKey(info))) {
+                    toRemove.add(info);
+                    continue;
+                }
+
                 long ping = pingProxy(info.address, info.port);
-                
+
                 if (ping == -1) {
-                    // Do not delete proxies from the list on temporary ping failures
-                    // SharedConfig.deleteProxy(info);
-                } else if (!foundWorking) {
-                    foundWorking = true;
-                    // Automatically enable and apply proxy if none is currently selected or enabled
-                    if (SharedConfig.currentProxy == null || !SharedConfig.isProxyEnabled()) {
-                        applyProxy(info);
+                    // Недоступен — навсегда в чёрный список и удаляем
+                    addToBlacklist(info);
+                    toRemove.add(info);
+                    FileLog.d("ProxyManager: proxy unavailable, blacklisted: " + info.address + ":" + info.port);
+                } else {
+                    // Рабочий прокси
+                    if (!foundWorking) {
+                        foundWorking = true;
+                        // Автовключение первого рабочего если прокси не выбран или отключён
+                        if (SharedConfig.currentProxy == null || !SharedConfig.isProxyEnabled()) {
+                            applyProxy(info);
+                        }
                     }
                 }
             }
+
+            // Удаляем нерабочие из списка
+            if (!toRemove.isEmpty()) {
+                for (SharedConfig.ProxyInfo bad : toRemove) {
+                    SharedConfig.proxyList.remove(bad);
+                }
+                SharedConfig.saveProxyList();
+                AndroidUtilities.runOnUIThread(() ->
+                        NotificationCenter.getGlobalInstance().postNotificationName(NotificationCenter.proxySettingsChanged));
+            }
+
             isChecking = false;
         }).start();
     }
+
+    // ─── Ping ─────────────────────────────────────────────────────────────────
 
     private static long pingProxy(String ip, int port) {
         long start = System.currentTimeMillis();
         try {
             java.net.Socket socket = new java.net.Socket();
-            socket.connect(new java.net.InetSocketAddress(ip, port), 2000);
+            socket.connect(new java.net.InetSocketAddress(ip, port), 3000);
             socket.close();
             return System.currentTimeMillis() - start;
         } catch (Exception e) {
@@ -185,35 +253,36 @@ public class ProxyManager {
         }
     }
 
-    private static void disableProxy() {
-        SharedConfig.currentProxy = null;
-        AndroidUtilities.runOnUIThread(() -> {
-            SharedPreferences preferences = MessagesController.getGlobalMainSettings();
-            preferences.edit().putBoolean("proxy_enabled", false).apply();
-            ConnectionsManager.setProxySettings(false, "", 1080, "", "", "");
-            showNoProxiesAlert();
-        });
-    }
+    // ─── Apply / Disable ──────────────────────────────────────────────────────
 
     private static void applyProxy(SharedConfig.ProxyInfo info) {
         SharedConfig.currentProxy = info;
         AndroidUtilities.runOnUIThread(() -> {
             SharedPreferences preferences = MessagesController.getGlobalMainSettings();
             preferences.edit()
-                .putBoolean("proxy_enabled", true)
-                .putString("proxy_ip", info.address)
-                .putInt("proxy_port", info.port)
-                .putString("proxy_user", info.username)
-                .putString("proxy_pass", info.password)
-                .putString("proxy_secret", info.secret)
-                .apply();
+                    .putBoolean("proxy_enabled", true)
+                    .putString("proxy_ip", info.address)
+                    .putInt("proxy_port", info.port)
+                    .putString("proxy_user", info.username)
+                    .putString("proxy_pass", info.password)
+                    .putString("proxy_secret", info.secret)
+                    .apply();
             ConnectionsManager.setProxySettings(true, info.address, info.port, info.username, info.password, info.secret);
+            FileLog.d("ProxyManager: applied proxy " + info.address + ":" + info.port);
         });
     }
 
-    private static void showNoProxiesAlert() {
-        NotificationCenter.getGlobalInstance().postNotificationName(NotificationCenter.didUpdateConnectionState);
+    private static void disableProxy() {
+        SharedConfig.currentProxy = null;
+        AndroidUtilities.runOnUIThread(() -> {
+            MessagesController.getGlobalMainSettings()
+                    .edit().putBoolean("proxy_enabled", false).apply();
+            ConnectionsManager.setProxySettings(false, "", 1080, "", "", "");
+            NotificationCenter.getGlobalInstance().postNotificationName(NotificationCenter.didUpdateConnectionState);
+        });
     }
+
+    // ─── Misc ─────────────────────────────────────────────────────────────────
 
     public static boolean isPromoBlocked() {
         return SharedConfig.noSponsor;
