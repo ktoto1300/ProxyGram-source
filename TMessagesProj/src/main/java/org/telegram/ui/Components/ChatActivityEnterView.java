@@ -5250,7 +5250,7 @@ public class ChatActivityEnterView extends BlurredFrameLayout implements Notific
             public void afterTextChanged(Editable editable) {
                 if (org.telegram.messenger.SharedConfig.liveDrafts && org.telegram.messenger.SharedConfig.isPremium()) {
                     org.telegram.messenger.AndroidUtilities.cancelRunOnUIThread(liveDraftRunnable);
-                    org.telegram.messenger.AndroidUtilities.runOnUIThread(liveDraftRunnable, 1000);
+                    org.telegram.messenger.AndroidUtilities.runOnUIThread(liveDraftRunnable, 250);
                 }
                 if (ignorePrevTextChange) {
                     return;
