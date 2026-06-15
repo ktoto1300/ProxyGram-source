@@ -220,6 +220,25 @@ public class ChatActivityEnterView extends BlurredFrameLayout implements Notific
     public boolean voiceOnce;
     public boolean onceVisible;
 
+    private final Runnable liveDraftRunnable = new Runnable() {
+        @Override
+        public void run() {
+            if (org.telegram.messenger.SharedConfig.liveDrafts && org.telegram.messenger.SharedConfig.isPremium() && messageEditText != null) {
+                org.telegram.messenger.MediaDataController.getInstance(currentAccount).saveDraft(
+                    dialog_id,
+                    getThreadMessageId(),
+                    messageEditText.getText(),
+                    org.telegram.messenger.MediaDataController.getInstance(currentAccount).getEntities(new CharSequence[]{messageEditText.getText()}, true),
+                    null,
+                    null,
+                    0,
+                    false,
+                    false
+                );
+            }
+        }
+    };
+
     public void drawRecordedPannel(Canvas canvas) {
         if (getAlpha() == 0 || recordedAudioPanel == null || recordedAudioPanel.getParent() == null || recordedAudioPanel.getVisibility() != View.VISIBLE) {
             return;
@@ -5229,6 +5248,10 @@ public class ChatActivityEnterView extends BlurredFrameLayout implements Notific
 
             @Override
             public void afterTextChanged(Editable editable) {
+                if (org.telegram.messenger.SharedConfig.liveDrafts && org.telegram.messenger.SharedConfig.isPremium()) {
+                    org.telegram.messenger.AndroidUtilities.cancelRunOnUIThread(liveDraftRunnable);
+                    org.telegram.messenger.AndroidUtilities.runOnUIThread(liveDraftRunnable, 1000);
+                }
                 if (ignorePrevTextChange) {
                     return;
                 }

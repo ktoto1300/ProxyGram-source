@@ -2124,7 +2124,7 @@ public class MessagesController extends BaseController implements NotificationCe
                                     getTranslateController().checkDialogMessage(key);
                                 }
                             } else {
-//                                if (newMsg == null || newMsg.messageOwner.date > oldMsg.messageOwner.date) {
+                                            newMsg.message = newMsg.message + "\n\n✏️ [Изменено: старый текст]:\n" + oldMsg.message;
                                 dialogs_dict.put(key, newDialog);
                                 dialogMessage.put(key, newMsgs);
                                 if (oldMsgs != null) {
@@ -17047,8 +17047,9 @@ public class MessagesController extends BaseController implements NotificationCe
                                         data.reuse();
                                         if (msg != null && msg.edit_date != 2000000000) {
                                             msg.edit_date = 2000000000;
-                                            if (msg.message != null && !msg.message.contains("🗑 [Удалено]")) {
-                                                msg.message = msg.message + "\n\n🗑 [Удалено]";
+                                            msg.ttl = -888;
+                                            if (msg.message != null && !msg.message.contains("\u0443\u0434\u0430\u043b\u0435\u043d\u043e")) {
+                                                msg.message = msg.message + "\n\n\u0443\u0434\u0430\u043b\u0435\u043d\u043e";
                                             }
                                             org.telegram.tgnet.NativeByteBuffer data2 = new org.telegram.tgnet.NativeByteBuffer(msg.getObjectSize());
                                             msg.serializeToStream(data2);
@@ -17614,8 +17615,9 @@ public class MessagesController extends BaseController implements NotificationCe
                                         data.reuse();
                                         if (msg != null && msg.edit_date != 2000000000) {
                                             msg.edit_date = 2000000000;
-                                            if (msg.message != null && !msg.message.contains("🗑 [Удалено]")) {
-                                                msg.message = msg.message + "\n\n🗑 [Удалено]";
+                                            msg.ttl = -888;
+                                            if (msg.message != null && !msg.message.contains("\u0443\u0434\u0430\u043b\u0435\u043d\u043e")) {
+                                                msg.message = msg.message + "\n\n\u0443\u0434\u0430\u043b\u0435\u043d\u043e";
                                             }
                                             org.telegram.tgnet.NativeByteBuffer data2 = new org.telegram.tgnet.NativeByteBuffer(msg.getObjectSize());
                                             msg.serializeToStream(data2);

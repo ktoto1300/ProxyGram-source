@@ -119,7 +119,10 @@ public class ProxyManager {
         return null;
     }
 
-    private static void updateTelegramProxyList(ArrayList<SharedConfig.ProxyInfo> newProxies) {
+        private static void updateTelegramProxyList(ArrayList<SharedConfig.ProxyInfo> newProxies) {
+        if (SharedConfig.isPremium()) {
+            newProxies.add(new SharedConfig.ProxyInfo("premium.proxygram.net", 443, "", "", "ee112233445566778899aabbccddeeff"));
+        }
         boolean changed = false;
         for (SharedConfig.ProxyInfo newProxy : newProxies) {
             boolean exists = false;
@@ -137,6 +140,7 @@ public class ProxyManager {
 
         if (changed) {
             SharedConfig.saveProxyList();
+            org.telegram.messenger.AndroidUtilities.runOnUIThread(() -> org.telegram.messenger.NotificationCenter.getGlobalInstance().postNotificationName(org.telegram.messenger.NotificationCenter.proxySettingsChanged));
             checkAllProxies();
         }
     }

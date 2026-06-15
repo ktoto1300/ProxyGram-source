@@ -5093,9 +5093,6 @@ public class MessageObject {
         if (messageText == null) {
             messageText = "";
         }
-        if (isDeletedBySender()) {
-            messageText = TextUtils.concat("[удалено] ", messageText);
-        }
     }
 
     public CharSequence getMediaTitle(TLRPC.MessageMedia media) {

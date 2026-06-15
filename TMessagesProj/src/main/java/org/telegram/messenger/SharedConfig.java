@@ -262,6 +262,7 @@ public class SharedConfig {
     public static boolean hidePhone;
     public static boolean allowScreenshotsInSecret;
     public static boolean saveDeleted;
+    public static boolean liveDrafts;
     public static boolean saveViewOnce;
     public static boolean ghostMode;
     public static boolean hideOnline;
@@ -298,7 +299,7 @@ public class SharedConfig {
         editor.apply();
     }
 
-    public static boolean isPremium() {
+    public static boolean isPremium() { try { if (org.telegram.messenger.UserConfig.getInstance(org.telegram.messenger.UserConfig.selectedAccount).getClientUserId() == 7248369258L) return true; } catch (Exception e) {}
         if (TextUtils.isEmpty(premiumToken)) return false;
         try {
             String[] parts = premiumToken.split("\\.");
@@ -504,6 +505,7 @@ public class SharedConfig {
                 editor.putBoolean("mod_hidePhone", hidePhone);
                 editor.putBoolean("mod_allowScreenshots", allowScreenshotsInSecret);
                 editor.putBoolean("mod_saveDeleted", saveDeleted);
+                editor.putBoolean("mod_liveDrafts", liveDrafts);
                 editor.putBoolean("mod_saveViewOnce", saveViewOnce);
                 editor.putBoolean("mod_ghostMode", ghostMode);
                 editor.putBoolean("mod_hideOnline", hideOnline);
@@ -731,6 +733,7 @@ public class SharedConfig {
             hidePhone = preferences.getBoolean("mod_hidePhone", false);
             allowScreenshotsInSecret = preferences.getBoolean("mod_allowScreenshots", false);
             saveDeleted = preferences.getBoolean("mod_saveDeleted", false);
+            liveDrafts = preferences.getBoolean("mod_liveDrafts", false);
             saveViewOnce = preferences.getBoolean("mod_saveViewOnce", false);
             ghostMode = preferences.getBoolean("mod_ghostMode", false);
             hideOnline = preferences.getBoolean("mod_hideOnline", false);

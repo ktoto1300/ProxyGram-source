@@ -8,11 +8,11 @@ import android.widget.FrameLayout;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import org.telegram.messenger.UserConfig;
 import org.telegram.messenger.LocaleController;
+import org.telegram.messenger.MessagesController;
 import org.telegram.messenger.R;
 import org.telegram.messenger.SharedConfig;
-import org.telegram.messenger.MessagesController;
+import org.telegram.messenger.UserConfig;
 import org.telegram.ui.ActionBar.ActionBar;
 import org.telegram.ui.ActionBar.BaseFragment;
 import org.telegram.ui.ActionBar.Theme;
@@ -30,25 +30,38 @@ public class ModSettingsActivity extends BaseFragment {
     private int antiDeleteRow;
     private int antiViewOnceRow;
     private int noAdsRow;
+    private int noSponsorRow;
     private int confirmCallRow;
     private int forceMtproto2Row;
     private int hidePhoneRow;
     private int allowScreenshotsRow;
     private int proxyAutoUpdateRow;
     private int proxyUpdateIntervalRow;
-    private int noSponsorRow;
     private int premiumRow;
+    private int liveDraftsRow;
     private int rowCount;
+
+    private boolean isRu() {
+        try {
+            String lang = LocaleController.getInstance().getCurrentLocaleInfo().shortName;
+            return "ru".equals(lang) || "uk".equals(lang) || "be".equals(lang);
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    private String s(String en, String ru) {
+        return isRu() ? ru : en;
+    }
 
     @Override
     public View createView(Context context) {
         actionBar.setBackButtonImage(R.drawable.ic_ab_back);
         actionBar.setAllowOverlayTitle(true);
-        actionBar.setTitle(LocaleController.getString("ProxyGramSettings", R.string.ProxyGramSettings));
+        actionBar.setTitle(s("ProxyGram Settings", "\u041d\u0430\u0441\u0442\u0440\u043e\u0439\u043a\u0438 ProxyGram"));
 
-        
         long currentUserId = UserConfig.getInstance(currentAccount).getClientUserId();
-        
+
         actionBar.setActionBarMenuOnItemClick(new ActionBar.ActionBarMenuOnItemClick() {
             @Override
             public void onItemClick(int id) {
@@ -81,6 +94,11 @@ public class ModSettingsActivity extends BaseFragment {
                 SharedConfig.saveViewOnce = !SharedConfig.saveViewOnce;
             } else if (position == noAdsRow) {
                 SharedConfig.noAds = !SharedConfig.noAds;
+            } else if (position == noSponsorRow) {
+                SharedConfig.noSponsor = !SharedConfig.noSponsor;
+                if (SharedConfig.noSponsor) {
+                    MessagesController.getInstance(currentAccount).checkPromoInfo(true);
+                }
             } else if (position == confirmCallRow) {
                 SharedConfig.confirmCall = !SharedConfig.confirmCall;
             } else if (position == forceMtproto2Row) {
@@ -89,35 +107,58 @@ public class ModSettingsActivity extends BaseFragment {
                 SharedConfig.hidePhone = !SharedConfig.hidePhone;
             } else if (position == allowScreenshotsRow) {
                 SharedConfig.allowScreenshotsInSecret = !SharedConfig.allowScreenshotsInSecret;
-            } else if (position == noSponsorRow) {
-                SharedConfig.noSponsor = !SharedConfig.noSponsor;
-                if (SharedConfig.noSponsor) {
-                    MessagesController.getInstance(currentAccount).checkPromoInfo(true);
-                }
             } else if (position == proxyAutoUpdateRow) {
                 SharedConfig.proxyAutoUpdate = !SharedConfig.proxyAutoUpdate;
             } else if (position == proxyUpdateIntervalRow) {
                 org.telegram.ui.ActionBar.AlertDialog.Builder builder = new org.telegram.ui.ActionBar.AlertDialog.Builder(getParentActivity());
-                builder.setTitle(LocaleController.getString("UpdateIntervalTitle", R.string.UpdateIntervalTitle));
+                builder.setTitle(s("Update Interval (minutes)", "\u0418\u043d\u0442\u0435\u0440\u0432\u0430\u043b (\u0432 \u043c\u0438\u043d\u0443\u0442\u0430\u0445)"));
                 final android.widget.EditText editText = new android.widget.EditText(getParentActivity());
                 editText.setInputType(android.text.InputType.TYPE_CLASS_NUMBER);
                 editText.setText(String.valueOf(SharedConfig.proxyUpdateInterval));
                 builder.setView(editText);
-                builder.setPositiveButton("Save", (dialog, which) -> {
+                builder.setPositiveButton(s("Save", "\u0421\u043e\u0445\u0440\u0430\u043d\u0438\u0442\u044c"), (dialog, which) -> {
                     try {
                         SharedConfig.proxyUpdateInterval = Integer.parseInt(editText.getText().toString());
                         SharedConfig.saveConfig();
                         listAdapter.notifyItemChanged(proxyUpdateIntervalRow);
                     } catch (Exception ignore) {}
                 });
-                builder.setNegativeButton("Cancel", null);
+                builder.setNegativeButton(s("Cancel", "\u041e\u0442\u043c\u0435\u043d\u0430"), null);
                 showDialog(builder.create());
                 return;
             } else if (position == premiumRow) {
-                android.content.ClipboardManager clipboard = (android.content.ClipboardManager) context.getSystemService(Context.CLIPBOARD_SERVICE);
-                android.content.ClipData clip = android.content.ClipData.newPlainText("User ID", String.valueOf(currentUserId));
-                clipboard.setPrimaryClip(clip);
-                android.widget.Toast.makeText(context, "ID copied: " + currentUserId, android.widget.Toast.LENGTH_SHORT).show();
+                org.telegram.ui.ActionBar.AlertDialog.Builder builder = new org.telegram.ui.ActionBar.AlertDialog.Builder(getParentActivity());
+                builder.setTitle("ProxyGram Premium");
+                String msg = isRu()
+                    ? "\u2728 \u041f\u0440\u0435\u0438\u043c\u0443\u0449\u0435\u0441\u0442\u0432\u0430 Premium:\n\n\u2022 \u041f\u0440\u0438\u0432\u0430\u0442\u043d\u044b\u0439 \u043d\u0435\u0431\u043b\u043e\u043a\u0438\u0440\u0443\u0435\u043c\u044b\u0439 \u043f\u0440\u043e\u043a\u0441\u0438\n\u2022 \u041f\u043e\u043b\u043d\u043e\u0435 \u043e\u0442\u043a\u043b\u044e\u0447\u0435\u043d\u0438\u0435 \u0440\u0435\u043a\u043b\u0430\u043c\u044b\n\u2022 \u041f\u0440\u0438\u043e\u0440\u0438\u0442\u0435\u0442\u043d\u0430\u044f \u043f\u043e\u0434\u0434\u0435\u0440\u0436\u043a\u0430\n\u2022 \u0411\u044b\u0441\u0442\u0440\u044b\u0435 \u0441\u0435\u0440\u0432\u0435\u0440\u044b\n\n\u0412\u0430\u0448 ID: " + currentUserId
+                    : "\u2728 Premium Benefits:\n\n\u2022 Private unblockable proxy\n\u2022 Full ad removal\n\u2022 Priority support\n\u2022 Fastest servers\n\nYour ID: " + currentUserId;
+                builder.setMessage(msg);
+                builder.setPositiveButton(isRu() ? "\u041a\u0443\u043f\u0438\u0442\u044c" : "Buy", (dialog, which) -> {
+                    org.telegram.messenger.browser.Browser.openUrl(getParentActivity(), "https://t.me/ktoto13000");
+                });
+                builder.setNegativeButton(isRu() ? "\u0417\u0430\u043a\u0440\u044b\u0442\u044c" : "Close", null);
+                showDialog(builder.create());
+                return;
+            } else if (position == liveDraftsRow) {
+                if (SharedConfig.isPremium()) {
+                    SharedConfig.liveDrafts = !SharedConfig.liveDrafts;
+                    SharedConfig.saveConfig();
+                    if (view instanceof TextCheckCell) {
+                        ((TextCheckCell) view).setChecked(SharedConfig.liveDrafts);
+                    }
+                } else {
+                    org.telegram.ui.ActionBar.AlertDialog.Builder builder = new org.telegram.ui.ActionBar.AlertDialog.Builder(getParentActivity());
+                    builder.setTitle("ProxyGram Premium");
+                    String msg = isRu()
+                        ? "\u2728 \u041f\u0440\u0435\u0438\u043c\u0443\u0449\u0435\u0441\u0442\u0432\u0430 Premium:\n\n\u2022 \u041f\u0440\u0438\u0432\u0430\u0442\u043d\u044b\u0439 \u043d\u0435\u0431\u043b\u043e\u043a\u0438\u0440\u0443\u0435\u043c\u044b\u0439 \u043f\u0440\u043e\u043a\u0441\u0438\n\u2022 \u041f\u043e\u043b\u043d\u043e\u0435 \u043e\u0442\u043a\u043b\u044e\u0447\u0435\u043d\u0438\u0435 \u0440\u0435\u043a\u043b\u0430\u043c\u044b\n\u2022 \u041f\u0440\u0438\u043e\u0440\u0438\u0442\u0435\u0442\u043d\u0430\u044f \u043f\u043e\u0434\u0434\u0435\u0440\u0436\u043a\u0430\n\u2022 \u0411\u044b\u0441\u0442\u0440\u044b\u0435 \u0441\u0435\u0440\u0432\u0435\u0440\u044b\n\u2022 \u0411\u044b\u0441\u0442\u0440\u044b\u0435 \u0447\u0435\u0440\u043d\u043e\u0432\u0438\u043a\u0438 (Live Drafts)\n\n\u0412\u0430\u0448 ID: " + currentUserId
+                        : "\u2728 Premium Benefits:\n\n\u2022 Private unblockable proxy\n\u2022 Full ad removal\n\u2022 Priority support\n\u2022 Fastest servers\n\u2022 Live Drafts\n\nYour ID: " + currentUserId;
+                    builder.setMessage(msg);
+                    builder.setPositiveButton(isRu() ? "\u041a\u0443\u043f\u0438\u0442\u044c" : "Buy", (dialog, which) -> {
+                        org.telegram.messenger.browser.Browser.openUrl(getParentActivity(), "https://t.me/ktoto13000");
+                    });
+                    builder.setNegativeButton(isRu() ? "\u0417\u0430\u043a\u0440\u044b\u0442\u044c" : "Close", null);
+                    showDialog(builder.create());
+                }
                 return;
             }
             SharedConfig.saveConfig();
@@ -130,38 +171,38 @@ public class ModSettingsActivity extends BaseFragment {
             String infoText = "";
             String title = "";
             if (position == ghostModeRow) {
-                title = LocaleController.getString("GhostMode", R.string.GhostMode);
-                infoText = LocaleController.getString("GhostModeInfo", R.string.GhostModeInfo);
+                title = s("Ghost Mode", "\u0420\u0435\u0436\u0438\u043c \u041d\u0435\u0432\u0438\u0434\u0438\u043c\u043a\u0438");
+                infoText = s("When enabled, your status appears as offline.", "\u0421\u043a\u0440\u044b\u0432\u0430\u0435\u0442 \u0432\u0430\u0448 \u043e\u043d\u043b\u0430\u0439\u043d-\u0441\u0442\u0430\u0442\u0443\u0441.");
             } else if (position == hideOnlineRow) {
-                title = LocaleController.getString("HideOnlineStatus", R.string.HideOnlineStatus);
-                infoText = LocaleController.getString("HideOnlineStatusInfo", R.string.HideOnlineStatusInfo);
+                title = s("Hide Typing Status", "\u0421\u043a\u0440\u044b\u0442\u044c '\u041f\u0435\u0447\u0430\u0442\u0430\u0435\u0442...'");
+                infoText = s("Hides your typing and online status.", "\u041f\u043e\u043b\u043d\u043e\u0441\u0442\u044c\u044e \u0441\u043a\u0440\u044b\u0432\u0430\u0435\u0442 \u0441\u0442\u0430\u0442\u0443\u0441 \u043d\u0430\u0431\u043e\u0440\u0430 \u0442\u0435\u043a\u0441\u0442\u0430.");
             } else if (position == antiDeleteRow) {
-                title = LocaleController.getString("AntiDeleteMessages", R.string.AntiDeleteMessages);
-                infoText = LocaleController.getString("AntiDeleteMessagesInfo", R.string.AntiDeleteMessagesInfo);
+                title = s("Anti-Delete Messages", "\u0410\u043d\u0442\u0438-\u0423\u0434\u0430\u043b\u0435\u043d\u0438\u0435");
+                infoText = s("Deleted messages marked with Deleted.", "\u0423\u0434\u0430\u043b\u0451\u043d\u043d\u044b\u0435 \u0441\u043e\u043e\u0431\u0449\u0435\u043d\u0438\u044f \u043f\u043e\u043c\u0435\u0447\u0430\u044e\u0442\u0441\u044f '\u0423\u0434\u0430\u043b\u0435\u043d\u043e'.");
             } else if (position == antiViewOnceRow) {
-                title = LocaleController.getString("AntiViewOnce", R.string.AntiViewOnce);
-                infoText = LocaleController.getString("AntiViewOnceInfo", R.string.AntiViewOnceInfo);
+                title = "Anti-View Once";
+                infoText = s("Disappearing media will not be deleted.", "\u0418\u0441\u0447\u0435\u0437\u0430\u044e\u0449\u0435\u0435 \u043c\u0435\u0434\u0438\u0430 \u043d\u0435 \u0431\u0443\u0434\u0435\u0442 \u0443\u0434\u0430\u043b\u044f\u0442\u044c\u0441\u044f.");
             } else if (position == noAdsRow) {
-                title = LocaleController.getString("NoAds", R.string.NoAds);
-                infoText = LocaleController.getString("NoAdsInfo", R.string.NoAdsInfo);
+                title = s("No Ads", "\u0411\u0435\u0437 \u0440\u0435\u043a\u043b\u0430\u043c\u044b");
+                infoText = s("Removes sponsored messages.", "\u0423\u0434\u0430\u043b\u044f\u0435\u0442 \u0441\u043f\u043e\u043d\u0441\u043e\u0440\u0441\u043a\u0438\u0435 \u043f\u043e\u0441\u0442\u044b \u0432 \u043a\u0430\u043d\u0430\u043b\u0430\u0445.");
             } else if (position == noSponsorRow) {
-                title = LocaleController.getString("BlockProxySponsors", R.string.BlockProxySponsors);
-                infoText = LocaleController.getString("BlockProxySponsorsInfo", R.string.BlockProxySponsorsInfo);
+                title = s("Block Proxy Sponsors", "\u0421\u043a\u0440\u044b\u0442\u044c \u0441\u043f\u043e\u043d\u0441\u043e\u0440\u043e\u0432 \u043f\u0440\u043e\u043a\u0441\u0438");
+                infoText = s("Hides sponsored channels from MTProto proxies.", "\u0423\u0431\u0438\u0440\u0430\u0435\u0442 \u043a\u0430\u043d\u0430\u043b\u044b-\u0441\u043f\u043e\u043d\u0441\u043e\u0440\u044b \u043e\u0442 MTProto \u043f\u0440\u043e\u043a\u0441\u0438.");
             } else if (position == confirmCallRow) {
-                title = LocaleController.getString("ConfirmBeforeCall", R.string.ConfirmBeforeCall);
-                infoText = LocaleController.getString("ConfirmBeforeCallInfo", R.string.ConfirmBeforeCallInfo);
+                title = s("Confirm Before Call", "\u041f\u043e\u0434\u0442\u0432\u0435\u0440\u0436\u0434\u0435\u043d\u0438\u0435 \u0437\u0432\u043e\u043d\u043a\u0430");
+                infoText = s("Shows a confirmation dialog before a call.", "\u041f\u043e\u043a\u0430\u0437\u044b\u0432\u0430\u0435\u0442 \u0434\u0438\u0430\u043b\u043e\u0433 \u043f\u0435\u0440\u0435\u0434 \u043d\u0430\u0447\u0430\u043b\u043e\u043c \u0437\u0432\u043e\u043d\u043a\u0430.");
             } else if (position == forceMtproto2Row) {
-                title = LocaleController.getString("ForcedMTProto2", R.string.ForcedMTProto2);
-                infoText = LocaleController.getString("ForcedMTProto2Info", R.string.ForcedMTProto2Info);
+                title = s("Forced MTProto 2.0", "\u041f\u0440\u0438\u043d\u0443\u0434\u0438\u0442\u0435\u043b\u044c\u043d\u044b\u0439 MTProto 2.0");
+                infoText = s("Prepends ee to MTProto proxy secrets.", "\u0414\u043e\u0431\u0430\u0432\u043b\u044f\u0435\u0442 ee \u043f\u0435\u0440\u0435\u0434 \u0441\u0435\u043a\u0440\u0435\u0442\u043e\u043c \u043f\u0440\u043e\u043a\u0441\u0438.");
             } else if (position == hidePhoneRow) {
-                title = LocaleController.getString("HideMyPhoneNumber", R.string.HideMyPhoneNumber);
-                infoText = LocaleController.getString("HideMyPhoneNumberInfo", R.string.HideMyPhoneNumberInfo);
+                title = s("Hide Phone Number", "\u0421\u043a\u0440\u044b\u0442\u044c \u043d\u043e\u043c\u0435\u0440 \u0442\u0435\u043b\u0435\u0444\u043e\u043d\u0430");
+                infoText = s("Replaces your phone number with *.", "\u0412\u043c\u0435\u0441\u0442\u043e \u043d\u043e\u043c\u0435\u0440\u0430 \u043e\u0442\u043e\u0431\u0440\u0430\u0436\u0430\u0435\u0442\u0441\u044f *.");
             } else if (position == allowScreenshotsRow) {
-                title = LocaleController.getString("AllowScreenshots", R.string.AllowScreenshots);
-                infoText = LocaleController.getString("AllowScreenshotsInfo", R.string.AllowScreenshotsInfo);
+                title = s("Allow Screenshots", "\u0420\u0430\u0437\u0440\u0435\u0448\u0438\u0442\u044c \u0441\u043a\u0440\u0438\u043d\u0448\u043e\u0442\u044b");
+                infoText = s("Bypasses screenshot restrictions.", "\u041f\u043e\u0437\u0432\u043e\u043b\u044f\u0435\u0442 \u0434\u0435\u043b\u0430\u0442\u044c \u0441\u043a\u0440\u0438\u043d\u0448\u043e\u0442\u044b \u0432 \u0441\u0435\u043a\u0440\u0435\u0442\u043d\u044b\u0445 \u0447\u0430\u0442\u0430\u0445.");
             } else if (position == proxyAutoUpdateRow) {
-                title = LocaleController.getString("AutoUpdateProxies", R.string.AutoUpdateProxies);
-                infoText = LocaleController.getString("AutoUpdateProxiesInfo", R.string.AutoUpdateProxiesInfo);
+                title = s("Auto-Update Proxies", "\u0410\u0432\u0442\u043e\u043e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u0435 \u043f\u0440\u043e\u043a\u0441\u0438");
+                infoText = s("Automatically updates proxy list.", "\u0410\u0432\u0442\u043e\u043c\u0430\u0442\u0438\u0447\u0435\u0441\u043a\u0438 \u043e\u0431\u043d\u043e\u0432\u043b\u044f\u0435\u0442 \u0441\u043f\u0438\u0441\u043e\u043a \u043f\u0440\u043e\u043a\u0441\u0438.");
             }
 
             if (!infoText.isEmpty()) {
@@ -201,6 +242,7 @@ public class ModSettingsActivity extends BaseFragment {
             proxyAutoUpdateRow = rowCount++;
             proxyUpdateIntervalRow = rowCount++;
             premiumRow = rowCount++;
+            liveDraftsRow = rowCount++;
         }
 
         @Override
@@ -225,31 +267,33 @@ public class ModSettingsActivity extends BaseFragment {
         public void onBindViewHolder(RecyclerView.ViewHolder holder, int position) {
             TextCheckCell checkCell = (TextCheckCell) holder.itemView;
             if (position == ghostModeRow) {
-                checkCell.setTextAndCheck(LocaleController.getString("GhostMode", R.string.GhostMode), SharedConfig.ghostMode, true);
+                checkCell.setTextAndCheck(s("Ghost Mode", "\u0420\u0435\u0436\u0438\u043c \u041d\u0435\u0432\u0438\u0434\u0438\u043c\u043a\u0438"), SharedConfig.ghostMode, true);
             } else if (position == hideOnlineRow) {
-                checkCell.setTextAndCheck(LocaleController.getString("HideOnlineStatus", R.string.HideOnlineStatus), SharedConfig.hideOnline, true);
+                checkCell.setTextAndCheck(s("Hide Typing Status", "\u0421\u043a\u0440\u044b\u0442\u044c '\u041f\u0435\u0447\u0430\u0442\u0430\u0435\u0442...'"), SharedConfig.hideOnline, true);
             } else if (position == antiDeleteRow) {
-                checkCell.setTextAndCheck(LocaleController.getString("AntiDeleteMessages", R.string.AntiDeleteMessages), SharedConfig.saveDeleted, true);
+                checkCell.setTextAndCheck(s("Anti-Delete Messages", "\u0410\u043d\u0442\u0438-\u0423\u0434\u0430\u043b\u0435\u043d\u0438\u0435"), SharedConfig.saveDeleted, true);
             } else if (position == antiViewOnceRow) {
-                checkCell.setTextAndCheck(LocaleController.getString("AntiViewOnce", R.string.AntiViewOnce), SharedConfig.saveViewOnce, true);
+                checkCell.setTextAndCheck(s("Anti-View Once", "Anti-View Once"), SharedConfig.saveViewOnce, true);
             } else if (position == noAdsRow) {
-                checkCell.setTextAndCheck(LocaleController.getString("NoAds", R.string.NoAds), SharedConfig.noAds, true);
+                checkCell.setTextAndCheck(s("No Ads", "\u0411\u0435\u0437 \u0440\u0435\u043a\u043b\u0430\u043c\u044b"), SharedConfig.noAds, true);
             } else if (position == noSponsorRow) {
-                checkCell.setTextAndCheck(LocaleController.getString("BlockProxySponsors", R.string.BlockProxySponsors), SharedConfig.noSponsor, true);
+                checkCell.setTextAndCheck(s("Block Proxy Sponsors", "\u0421\u043a\u0440\u044b\u0442\u044c \u0441\u043f\u043e\u043d\u0441\u043e\u0440\u043e\u0432 \u043f\u0440\u043e\u043a\u0441\u0438"), SharedConfig.noSponsor, true);
             } else if (position == confirmCallRow) {
-                checkCell.setTextAndCheck(LocaleController.getString("ConfirmBeforeCall", R.string.ConfirmBeforeCall), SharedConfig.confirmCall, true);
+                checkCell.setTextAndCheck(s("Confirm Before Call", "\u041f\u043e\u0434\u0442\u0432\u0435\u0440\u0436\u0434\u0435\u043d\u0438\u0435 \u0437\u0432\u043e\u043d\u043a\u0430"), SharedConfig.confirmCall, true);
             } else if (position == forceMtproto2Row) {
-                checkCell.setTextAndCheck(LocaleController.getString("ForcedMTProto2", R.string.ForcedMTProto2), SharedConfig.forceMtproto2, true);
+                checkCell.setTextAndCheck(s("Forced MTProto 2.0", "\u041f\u0440\u0438\u043d\u0443\u0434. MTProto 2.0"), SharedConfig.forceMtproto2, true);
             } else if (position == hidePhoneRow) {
-                checkCell.setTextAndCheck(LocaleController.getString("HideMyPhoneNumber", R.string.HideMyPhoneNumber), SharedConfig.hidePhone, true);
+                checkCell.setTextAndCheck(s("Hide Phone Number", "\u0421\u043a\u0440\u044b\u0442\u044c \u043d\u043e\u043c\u0435\u0440"), SharedConfig.hidePhone, true);
             } else if (position == allowScreenshotsRow) {
-                checkCell.setTextAndCheck(LocaleController.getString("AllowScreenshots", R.string.AllowScreenshots), SharedConfig.allowScreenshotsInSecret, true);
+                checkCell.setTextAndCheck(s("Allow Screenshots", "\u0420\u0430\u0437\u0440\u0435\u0448\u0438\u0442\u044c \u0441\u043a\u0440\u0438\u043d\u0448\u043e\u0442\u044b"), SharedConfig.allowScreenshotsInSecret, true);
             } else if (position == proxyAutoUpdateRow) {
-                checkCell.setTextAndCheck(LocaleController.getString("AutoUpdateProxies", R.string.AutoUpdateProxies), SharedConfig.proxyAutoUpdate, true);
+                checkCell.setTextAndCheck(s("Auto-Update Proxies", "\u0410\u0432\u0442\u043e\u043e\u0431\u043d. \u043f\u0440\u043e\u043a\u0441\u0438"), SharedConfig.proxyAutoUpdate, true);
             } else if (position == proxyUpdateIntervalRow) {
-                checkCell.setTextAndCheck(LocaleController.formatString("UpdateInterval", R.string.UpdateInterval, SharedConfig.proxyUpdateInterval), false, true);
+                checkCell.setTextAndCheck(s("Interval: ", "\u0418\u043d\u0442\u0435\u0440\u0432\u0430\u043b: ") + SharedConfig.proxyUpdateInterval + s(" min", " \u043c\u0438\u043d"), false, true);
             } else if (position == premiumRow) {
-                checkCell.setTextAndCheck(LocaleController.formatString("YourID", R.string.YourID, UserConfig.getInstance(currentAccount).getClientUserId()), false, false);
+                checkCell.setTextAndCheck("ProxyGram Premium", false, false);
+            } else if (position == liveDraftsRow) {
+                checkCell.setTextAndCheck(s("Live Drafts (Premium)", "\u0411\u044b\u0441\u0442\u0440\u044b\u0435 \u0447\u0435\u0440\u043d\u043e\u0432\u0438\u043a\u0438 (Premium)"), SharedConfig.liveDrafts, true);
             }
         }
 
