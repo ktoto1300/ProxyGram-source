@@ -2124,7 +2124,7 @@ public class MessagesController extends BaseController implements NotificationCe
                                     getTranslateController().checkDialogMessage(key);
                                 }
                             } else {
-                                            newMsg.message = newMsg.message + "\n\n✏️ [Изменено: старый текст]:\n" + oldMsg.message;
+                                //newMsg.message = newMsg.message + "\n\n✏️ [Изменено: старый текст]:\n" + oldMsg.message;
                                 dialogs_dict.put(key, newDialog);
                                 dialogMessage.put(key, newMsgs);
                                 if (oldMsgs != null) {
