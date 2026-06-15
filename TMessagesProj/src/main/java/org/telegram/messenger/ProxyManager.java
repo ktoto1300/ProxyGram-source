@@ -156,20 +156,15 @@ public class ProxyManager {
             for (int i = 0; i < SharedConfig.proxyList.size(); i++) {
                 final SharedConfig.ProxyInfo info = SharedConfig.proxyList.get(i);
                 
-                // Простая синхронная проверка через сокет (пинг), чтобы не спамить Telegram API
                 long ping = pingProxy(info.address, info.port);
                 
                 if (ping == -1) {
-                    // Мертв
-                    SharedConfig.deleteProxy(info);
-                    if (SharedConfig.currentProxy == info) {
-                        disableProxy();
-                    }
+                    // Do not delete proxies from the list on temporary ping failures
+                    // SharedConfig.deleteProxy(info);
                 } else if (!foundWorking) {
-                    // Нашли первый рабочий
                     foundWorking = true;
-                    // Авто-переключение: только если прокси уже были включены юзером
-                    if (SharedConfig.currentProxy == null && SharedConfig.isProxyEnabled()) {
+                    // Automatically enable and apply proxy if none is currently selected or enabled
+                    if (SharedConfig.currentProxy == null || !SharedConfig.isProxyEnabled()) {
                         applyProxy(info);
                     }
                 }
