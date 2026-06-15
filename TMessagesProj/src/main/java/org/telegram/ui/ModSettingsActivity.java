@@ -17,6 +17,7 @@ import org.telegram.ui.ActionBar.ActionBar;
 import org.telegram.ui.ActionBar.BaseFragment;
 import org.telegram.ui.ActionBar.Theme;
 import org.telegram.ui.Cells.TextCheckCell;
+import org.telegram.ui.Cells.TextSettingsCell;
 import org.telegram.ui.Components.LayoutHelper;
 import org.telegram.ui.Components.RecyclerListView;
 
@@ -257,7 +258,12 @@ public class ModSettingsActivity extends BaseFragment {
 
         @Override
         public RecyclerView.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
-            View view = new TextCheckCell(mContext);
+            View view;
+            if (viewType == 2) {
+                view = new TextSettingsCell(mContext);
+            } else {
+                view = new TextCheckCell(mContext);
+            }
             view.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundWhite));
             view.setLayoutParams(new RecyclerView.LayoutParams(RecyclerView.LayoutParams.MATCH_PARENT, RecyclerView.LayoutParams.WRAP_CONTENT));
             return new RecyclerListView.Holder(view);
@@ -265,40 +271,48 @@ public class ModSettingsActivity extends BaseFragment {
 
         @Override
         public void onBindViewHolder(RecyclerView.ViewHolder holder, int position) {
-            TextCheckCell checkCell = (TextCheckCell) holder.itemView;
-            if (position == ghostModeRow) {
-                checkCell.setTextAndCheck(s("Ghost Mode", "\u0420\u0435\u0436\u0438\u043c \u041d\u0435\u0432\u0438\u0434\u0438\u043c\u043a\u0438"), SharedConfig.ghostMode, true);
-            } else if (position == hideOnlineRow) {
-                checkCell.setTextAndCheck(s("Hide Typing Status", "\u0421\u043a\u0440\u044b\u0442\u044c '\u041f\u0435\u0447\u0430\u0442\u0430\u0435\u0442...'"), SharedConfig.hideOnline, true);
-            } else if (position == antiDeleteRow) {
-                checkCell.setTextAndCheck(s("Anti-Delete Messages", "\u0410\u043d\u0442\u0438-\u0423\u0434\u0430\u043b\u0435\u043d\u0438\u0435"), SharedConfig.saveDeleted, true);
-            } else if (position == antiViewOnceRow) {
-                checkCell.setTextAndCheck(s("Anti-View Once", "Anti-View Once"), SharedConfig.saveViewOnce, true);
-            } else if (position == noAdsRow) {
-                checkCell.setTextAndCheck(s("No Ads", "\u0411\u0435\u0437 \u0440\u0435\u043a\u043b\u0430\u043c\u044b"), SharedConfig.noAds, true);
-            } else if (position == noSponsorRow) {
-                checkCell.setTextAndCheck(s("Block Proxy Sponsors", "\u0421\u043a\u0440\u044b\u0442\u044c \u0441\u043f\u043e\u043d\u0441\u043e\u0440\u043e\u0432 \u043f\u0440\u043e\u043a\u0441\u0438"), SharedConfig.noSponsor, true);
-            } else if (position == confirmCallRow) {
-                checkCell.setTextAndCheck(s("Confirm Before Call", "\u041f\u043e\u0434\u0442\u0432\u0435\u0440\u0436\u0434\u0435\u043d\u0438\u0435 \u0437\u0432\u043e\u043d\u043a\u0430"), SharedConfig.confirmCall, true);
-            } else if (position == forceMtproto2Row) {
-                checkCell.setTextAndCheck(s("Forced MTProto 2.0", "\u041f\u0440\u0438\u043d\u0443\u0434. MTProto 2.0"), SharedConfig.forceMtproto2, true);
-            } else if (position == hidePhoneRow) {
-                checkCell.setTextAndCheck(s("Hide Phone Number", "\u0421\u043a\u0440\u044b\u0442\u044c \u043d\u043e\u043c\u0435\u0440"), SharedConfig.hidePhone, true);
-            } else if (position == allowScreenshotsRow) {
-                checkCell.setTextAndCheck(s("Allow Screenshots", "\u0420\u0430\u0437\u0440\u0435\u0448\u0438\u0442\u044c \u0441\u043a\u0440\u0438\u043d\u0448\u043e\u0442\u044b"), SharedConfig.allowScreenshotsInSecret, true);
-            } else if (position == proxyAutoUpdateRow) {
-                checkCell.setTextAndCheck(s("Auto-Update Proxies", "\u0410\u0432\u0442\u043e\u043e\u0431\u043d. \u043f\u0440\u043e\u043a\u0441\u0438"), SharedConfig.proxyAutoUpdate, true);
-            } else if (position == proxyUpdateIntervalRow) {
-                checkCell.setTextAndCheck(s("Interval: ", "\u0418\u043d\u0442\u0435\u0440\u0432\u0430\u043b: ") + SharedConfig.proxyUpdateInterval + s(" min", " \u043c\u0438\u043d"), false, true);
-            } else if (position == premiumRow) {
-                checkCell.setTextAndCheck("ProxyGram Premium", false, false);
-            } else if (position == liveDraftsRow) {
-                checkCell.setTextAndCheck(s("Live Drafts (Premium)", "\u0411\u044b\u0441\u0442\u0440\u044b\u0435 \u0447\u0435\u0440\u043d\u043e\u0432\u0438\u043a\u0438 (Premium)"), SharedConfig.liveDrafts, true);
+            if (holder.getItemViewType() == 1) {
+                TextCheckCell checkCell = (TextCheckCell) holder.itemView;
+                if (position == ghostModeRow) {
+                    checkCell.setTextAndCheck(s("Ghost Mode", "\u0420\u0435\u0436\u0438\u043c \u041d\u0435\u0432\u0438\u0434\u0438\u043c\u043a\u0438"), SharedConfig.ghostMode, true);
+                } else if (position == hideOnlineRow) {
+                    checkCell.setTextAndCheck(s("Hide Typing Status", "\u0421\u043a\u0440\u044b\u0442\u044c '\u041f\u0435\u0447\u0430\u0442\u0430\u0435\u0442...'"), SharedConfig.hideOnline, true);
+                } else if (position == antiDeleteRow) {
+                    checkCell.setTextAndCheck(s("Anti-Delete Messages", "\u0410\u043d\u0442\u0438-\u0423\u0434\u0430\u043b\u0435\u043d\u0438\u0435"), SharedConfig.saveDeleted, true);
+                } else if (position == antiViewOnceRow) {
+                    checkCell.setTextAndCheck(s("Anti-View Once", "Anti-View Once"), SharedConfig.saveViewOnce, true);
+                } else if (position == noAdsRow) {
+                    checkCell.setTextAndCheck(s("No Ads", "\u0411\u0435\u0437 \u0440\u0435\u043a\u043b\u0430\u043c\u044b"), SharedConfig.noAds, true);
+                } else if (position == noSponsorRow) {
+                    checkCell.setTextAndCheck(s("Block Proxy Sponsors", "\u0421\u043a\u0440\u044b\u0442\u044c \u0441\u043f\u043e\u043d\u0441\u043e\u0440\u043e\u0432 \u043f\u0440\u043e\u043a\u0441\u0438"), SharedConfig.noSponsor, true);
+                } else if (position == confirmCallRow) {
+                    checkCell.setTextAndCheck(s("Confirm Before Call", "\u041f\u043e\u0434\u0442\u0432\u0435\u0440\u0436\u0434\u0435\u043d\u0438\u0435 \u0437\u0432\u043e\u043d\u043a\u0430"), SharedConfig.confirmCall, true);
+                } else if (position == forceMtproto2Row) {
+                    checkCell.setTextAndCheck(s("Forced MTProto 2.0", "\u041f\u0440\u0438\u043d\u0443\u0434. MTProto 2.0"), SharedConfig.forceMtproto2, true);
+                } else if (position == hidePhoneRow) {
+                    checkCell.setTextAndCheck(s("Hide Phone Number", "\u0421\u043a\u0440\u044b\u0442\u044c \u043d\u043e\u043c\u0435\u0440"), SharedConfig.hidePhone, true);
+                } else if (position == allowScreenshotsRow) {
+                    checkCell.setTextAndCheck(s("Allow Screenshots", "\u0420\u0430\u0437\u0440\u0435\u0448\u0438\u0442\u044c \u0441\u043a\u0440\u0438\u043d\u0448\u043e\u0442\u044b"), SharedConfig.allowScreenshotsInSecret, true);
+                } else if (position == proxyAutoUpdateRow) {
+                    checkCell.setTextAndCheck(s("Auto-Update Proxies", "\u0410\u0432\u0442\u043e\u043e\u0431\u043d. \u043f\u0440\u043e\u043a\u0441\u0438"), SharedConfig.proxyAutoUpdate, true);
+                } else if (position == liveDraftsRow) {
+                    checkCell.setTextAndCheck(s("Live Drafts (Premium)", "\u0411\u044b\u0441\u0442\u0440\u044b\u0435 \u0447\u0435\u0440\u043d\u043e\u0432\u0438\u043a\u0438 (Premium)"), SharedConfig.liveDrafts, true);
+                }
+            } else if (holder.getItemViewType() == 2) {
+                TextSettingsCell settingsCell = (TextSettingsCell) holder.itemView;
+                if (position == proxyUpdateIntervalRow) {
+                    settingsCell.setTextAndValue(s("Interval: ", "\u0418\u043d\u0442\u0435\u0440\u0432\u0430\u043b: ") + SharedConfig.proxyUpdateInterval + s(" min", " \u043c\u0438\u043d"), "", true);
+                } else if (position == premiumRow) {
+                    settingsCell.setText("ProxyGram Premium", false);
+                }
             }
         }
 
         @Override
         public int getItemViewType(int position) {
+            if (position == proxyUpdateIntervalRow || position == premiumRow) {
+                return 2;
+            }
             return 1;
         }
     }
