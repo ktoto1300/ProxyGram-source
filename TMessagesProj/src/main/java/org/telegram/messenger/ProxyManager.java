@@ -4,13 +4,9 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.net.Uri;
 
-import org.json.JSONArray;
-import org.json.JSONObject;
 import org.telegram.tgnet.ConnectionsManager;
-import org.telegram.tgnet.RequestTimeDelegate;
 import org.telegram.messenger.MessagesController;
 import org.telegram.messenger.NotificationCenter;
-import org.telegram.messenger.UserConfig;
 import org.telegram.messenger.FileLog;
 
 import java.io.BufferedReader;
@@ -18,46 +14,15 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.Set;
 
 public class ProxyManager {
     private static final String PROXY_LIST_URL_DEFAULT = "https://raw.githubusercontent.com/ktoto1300/Proxy-s/main/proxies.txt";
-    private static final String PREF_BLACKLIST = "proxy_blacklist";
     private static final String PREF_NAME = "proxygram_manager";
+    // Флаг: юзер сам когда-либо менял прокси вручную — тогда не трогаем автоматически
+    private static final String PREF_USER_CONFIGURED = "proxy_user_configured";
 
     private static boolean started = false;
     private static boolean isChecking = false;
-
-    // ─── Blacklist helpers ────────────────────────────────────────────────────
-
-    /** Уникальный ключ прокси для чёрного списка: "host:port:secret" */
-    private static String proxyKey(SharedConfig.ProxyInfo p) {
-        return (p.address + ":" + p.port + ":" + (p.secret != null ? p.secret : "")).toLowerCase();
-    }
-
-    private static Set<String> loadBlacklist() {
-        SharedPreferences prefs = ApplicationLoader.applicationContext
-                .getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
-        return new HashSet<>(prefs.getStringSet(PREF_BLACKLIST, new HashSet<>()));
-    }
-
-    private static void saveBlacklist(Set<String> blacklist) {
-        ApplicationLoader.applicationContext
-                .getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
-                .edit().putStringSet(PREF_BLACKLIST, blacklist).apply();
-    }
-
-    private static void addToBlacklist(SharedConfig.ProxyInfo info) {
-        Set<String> bl = loadBlacklist();
-        bl.add(proxyKey(info));
-        saveBlacklist(bl);
-        FileLog.d("ProxyManager: blacklisted " + proxyKey(info));
-    }
-
-    private static boolean isBlacklisted(SharedConfig.ProxyInfo info) {
-        return loadBlacklist().contains(proxyKey(info));
-    }
 
     // ─── Start ────────────────────────────────────────────────────────────────
 
@@ -65,21 +30,48 @@ public class ProxyManager {
         if (started) return;
         started = true;
 
-        // НЕ добавляем fallback-прокси — они перезаписывают сохранённый список
-
         new Thread(() -> {
-            // Сначала проверяем уже сохранённые прокси
-            checkAllProxies();
+            // Шаг 1: сразу применяем первый прокси из сохранённого списка (без пинга!)
+            // Только если юзер ещё не настраивал прокси вручную
+            if (!isUserConfigured() && !SharedConfig.proxyList.isEmpty()) {
+                SharedConfig.ProxyInfo first = SharedConfig.proxyList.get(0);
+                applyProxy(first);
+                FileLog.d("ProxyManager: auto-applied saved proxy on startup: " + first.address);
+            }
 
+            // Шаг 2: ждём 10 секунд пока сеть поднимется
+            try { Thread.sleep(10000); } catch (InterruptedException ignored) {}
+
+            // Шаг 3: фетчим свежий список прокси
+            if (SharedConfig.proxyAutoUpdate) {
+                fetchAndApplyProxies();
+            }
+
+            // Шаг 4: периодически обновляем список
             while (true) {
-                if (SharedConfig.proxyAutoUpdate) {
-                    fetchAndApplyProxies();
-                }
                 try {
                     Thread.sleep(Math.max(1, SharedConfig.proxyUpdateInterval) * 60 * 1000L);
                 } catch (InterruptedException ignored) {}
+                if (SharedConfig.proxyAutoUpdate) {
+                    fetchAndApplyProxies();
+                }
             }
         }).start();
+    }
+
+    // ─── Флаг ручной настройки ────────────────────────────────────────────────
+
+    /** Вызывается когда юзер сам меняет прокси в настройках */
+    public static void markUserConfigured() {
+        ApplicationLoader.applicationContext
+                .getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
+                .edit().putBoolean(PREF_USER_CONFIGURED, true).apply();
+    }
+
+    private static boolean isUserConfigured() {
+        return ApplicationLoader.applicationContext
+                .getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
+                .getBoolean(PREF_USER_CONFIGURED, false);
     }
 
     // ─── Fetch ────────────────────────────────────────────────────────────────
@@ -87,32 +79,28 @@ public class ProxyManager {
     public static void fetchAndApplyProxies() {
         new Thread(() -> {
             try {
-                URL url = new URL(SharedConfig.proxyListUrl != null ? SharedConfig.proxyListUrl : PROXY_LIST_URL_DEFAULT);
-                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                String urlStr = SharedConfig.proxyListUrl != null
+                        ? SharedConfig.proxyListUrl : PROXY_LIST_URL_DEFAULT;
+                HttpURLConnection conn = (HttpURLConnection) new URL(urlStr).openConnection();
                 conn.setConnectTimeout(15000);
                 conn.setReadTimeout(15000);
 
                 BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
-                ArrayList<SharedConfig.ProxyInfo> newProxies = new ArrayList<>();
+                ArrayList<SharedConfig.ProxyInfo> fetched = new ArrayList<>();
                 String line;
-
                 while ((line = reader.readLine()) != null) {
                     line = line.trim();
                     if (line.isEmpty() || line.startsWith("#")) continue;
-
                     SharedConfig.ProxyInfo info = parseProxyLine(line);
-                    if (info != null && !isBlacklisted(info)) {
-                        newProxies.add(info);
-                    }
+                    if (info != null) fetched.add(info);
                 }
                 reader.close();
 
-                if (!newProxies.isEmpty()) {
-                    updateTelegramProxyList(newProxies);
+                if (!fetched.isEmpty()) {
+                    addNewProxiesToList(fetched);
                 }
-
             } catch (Exception e) {
-                FileLog.e("ProxyManager: Failed to fetch proxies - " + e.getMessage());
+                FileLog.e("ProxyManager: fetch failed - " + e.getMessage());
             }
         }).start();
     }
@@ -128,10 +116,12 @@ public class ProxyManager {
                 String secret = uri.getQueryParameter("secret");
                 String user = uri.getQueryParameter("user");
                 String pass = uri.getQueryParameter("pass");
-
                 if (server != null && portStr != null) {
-                    return new SharedConfig.ProxyInfo(server, Integer.parseInt(portStr),
-                            user != null ? user : "", pass != null ? pass : "", secret != null ? secret : "");
+                    return new SharedConfig.ProxyInfo(
+                            server, Integer.parseInt(portStr),
+                            user != null ? user : "",
+                            pass != null ? pass : "",
+                            secret != null ? secret : "");
                 }
             }
 
@@ -147,27 +137,24 @@ public class ProxyManager {
                     return new SharedConfig.ProxyInfo(server, port, "", "", "");
                 }
             }
-        } catch (Exception ignore) {}
+        } catch (Exception ignored) {}
         return null;
     }
 
-    // ─── Update list ──────────────────────────────────────────────────────────
+    // ─── Add new to list ──────────────────────────────────────────────────────
 
-    private static void updateTelegramProxyList(ArrayList<SharedConfig.ProxyInfo> newProxies) {
+    private static void addNewProxiesToList(ArrayList<SharedConfig.ProxyInfo> fetched) {
         if (SharedConfig.isPremium()) {
-            SharedConfig.ProxyInfo premProxy = new SharedConfig.ProxyInfo("premium.proxygram.net", 443, "", "", "ee112233445566778899aabbccddeeff");
-            if (!isBlacklisted(premProxy)) newProxies.add(premProxy);
+            fetched.add(new SharedConfig.ProxyInfo("premium.proxygram.net", 443, "", "",
+                    "ee112233445566778899aabbccddeeff"));
         }
 
         boolean changed = false;
-        Set<String> blacklist = loadBlacklist();
-
-        for (SharedConfig.ProxyInfo newProxy : newProxies) {
-            if (blacklist.contains(proxyKey(newProxy))) continue; // пропускаем занесённые в ЧС
-
+        for (SharedConfig.ProxyInfo newProxy : fetched) {
             boolean exists = false;
             for (SharedConfig.ProxyInfo existing : SharedConfig.proxyList) {
-                if (existing.address.equalsIgnoreCase(newProxy.address) && existing.port == newProxy.port) {
+                if (existing.address.equalsIgnoreCase(newProxy.address)
+                        && existing.port == newProxy.port) {
                     exists = true;
                     break;
                 }
@@ -181,58 +168,57 @@ public class ProxyManager {
         if (changed) {
             SharedConfig.saveProxyList();
             AndroidUtilities.runOnUIThread(() ->
-                    NotificationCenter.getGlobalInstance().postNotificationName(NotificationCenter.proxySettingsChanged));
-            checkAllProxies();
+                    NotificationCenter.getGlobalInstance()
+                            .postNotificationName(NotificationCenter.proxySettingsChanged));
+            // После добавления новых — пингуем чтобы найти рабочий
+            checkAndApplyBestProxy();
         }
     }
 
-    // ─── Check all proxies ────────────────────────────────────────────────────
+    // ─── Ping & найти лучший ──────────────────────────────────────────────────
 
-    public static void checkAllProxies() {
+    /**
+     * Пингует все прокси, нерабочие удаляет из списка (но не навсегда — при
+     * следующем фетче они вернутся). Если юзер не трогал настройки вручную —
+     * применяет первый рабочий.
+     */
+    public static void checkAndApplyBestProxy() {
         if (SharedConfig.proxyList.isEmpty() || isChecking) return;
         isChecking = true;
 
         new Thread(() -> {
-            boolean foundWorking = false;
-            Set<String> blacklist = loadBlacklist();
             ArrayList<SharedConfig.ProxyInfo> toRemove = new ArrayList<>();
+            SharedConfig.ProxyInfo bestProxy = null;
 
             for (int i = 0; i < SharedConfig.proxyList.size(); i++) {
-                final SharedConfig.ProxyInfo info = SharedConfig.proxyList.get(i);
-
-                // Если уже в чёрном списке — удаляем из активного списка
-                if (blacklist.contains(proxyKey(info))) {
-                    toRemove.add(info);
-                    continue;
-                }
-
+                SharedConfig.ProxyInfo info = SharedConfig.proxyList.get(i);
                 long ping = pingProxy(info.address, info.port);
-
                 if (ping == -1) {
-                    // Недоступен — навсегда в чёрный список и удаляем
-                    addToBlacklist(info);
+                    // Недоступен — убираем из текущего списка
                     toRemove.add(info);
-                    FileLog.d("ProxyManager: proxy unavailable, blacklisted: " + info.address + ":" + info.port);
-                } else {
-                    // Рабочий прокси
-                    if (!foundWorking) {
-                        foundWorking = true;
-                        // Автовключение первого рабочего если прокси не выбран или отключён
-                        if (SharedConfig.currentProxy == null || !SharedConfig.isProxyEnabled()) {
-                            applyProxy(info);
-                        }
-                    }
+                    FileLog.d("ProxyManager: unreachable, removing from list: "
+                            + info.address + ":" + info.port);
+                } else if (bestProxy == null) {
+                    bestProxy = info;
                 }
             }
 
-            // Удаляем нерабочие из списка
+            // Удаляем нерабочие из текущего списка
             if (!toRemove.isEmpty()) {
                 for (SharedConfig.ProxyInfo bad : toRemove) {
                     SharedConfig.proxyList.remove(bad);
                 }
                 SharedConfig.saveProxyList();
                 AndroidUtilities.runOnUIThread(() ->
-                        NotificationCenter.getGlobalInstance().postNotificationName(NotificationCenter.proxySettingsChanged));
+                        NotificationCenter.getGlobalInstance()
+                                .postNotificationName(NotificationCenter.proxySettingsChanged));
+            }
+
+            // Автоприменяем только если юзер не настраивал вручную
+            if (bestProxy != null && !isUserConfigured()) {
+                if (SharedConfig.currentProxy == null || !SharedConfig.isProxyEnabled()) {
+                    applyProxy(bestProxy);
+                }
             }
 
             isChecking = false;
@@ -253,13 +239,13 @@ public class ProxyManager {
         }
     }
 
-    // ─── Apply / Disable ──────────────────────────────────────────────────────
+    // ─── Apply ────────────────────────────────────────────────────────────────
 
     private static void applyProxy(SharedConfig.ProxyInfo info) {
         SharedConfig.currentProxy = info;
         AndroidUtilities.runOnUIThread(() -> {
-            SharedPreferences preferences = MessagesController.getGlobalMainSettings();
-            preferences.edit()
+            SharedPreferences prefs = MessagesController.getGlobalMainSettings();
+            prefs.edit()
                     .putBoolean("proxy_enabled", true)
                     .putString("proxy_ip", info.address)
                     .putInt("proxy_port", info.port)
@@ -267,18 +253,9 @@ public class ProxyManager {
                     .putString("proxy_pass", info.password)
                     .putString("proxy_secret", info.secret)
                     .apply();
-            ConnectionsManager.setProxySettings(true, info.address, info.port, info.username, info.password, info.secret);
+            ConnectionsManager.setProxySettings(true, info.address, info.port,
+                    info.username, info.password, info.secret);
             FileLog.d("ProxyManager: applied proxy " + info.address + ":" + info.port);
-        });
-    }
-
-    private static void disableProxy() {
-        SharedConfig.currentProxy = null;
-        AndroidUtilities.runOnUIThread(() -> {
-            MessagesController.getGlobalMainSettings()
-                    .edit().putBoolean("proxy_enabled", false).apply();
-            ConnectionsManager.setProxySettings(false, "", 1080, "", "", "");
-            NotificationCenter.getGlobalInstance().postNotificationName(NotificationCenter.didUpdateConnectionState);
         });
     }
 

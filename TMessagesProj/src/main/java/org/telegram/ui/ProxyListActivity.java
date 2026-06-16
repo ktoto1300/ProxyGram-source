@@ -430,6 +430,8 @@ public class ProxyListActivity extends BaseFragment implements NotificationCente
                 SharedPreferences.Editor editor = MessagesController.getGlobalMainSettings().edit();
                 editor.putBoolean("proxy_enabled", useProxySettings);
                 editor.commit();
+                // Юзер вручную трогал прокси — больше не включаем автоматически
+                org.telegram.messenger.ProxyManager.markUserConfigured();
 
                 ConnectionsManager.setProxySettings(useProxySettings, SharedConfig.currentProxy.address, SharedConfig.currentProxy.port, SharedConfig.currentProxy.username, SharedConfig.currentProxy.password, SharedConfig.currentProxy.secret);
                 NotificationCenter.getGlobalInstance().removeObserver(ProxyListActivity.this, NotificationCenter.proxySettingsChanged);
@@ -477,6 +479,8 @@ public class ProxyListActivity extends BaseFragment implements NotificationCente
                 }
                 editor.commit();
                 SharedConfig.currentProxy = info;
+                // Юзер выбрал прокси вручную
+                org.telegram.messenger.ProxyManager.markUserConfigured();
                 for (int a = proxyStartRow; a < proxyEndRow; a++) {
                     RecyclerListView.Holder holder = (RecyclerListView.Holder) listView.findViewHolderForAdapterPosition(a);
                     if (holder != null) {
