@@ -14,6 +14,9 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 public class ProxyManager {
     private static final String PROXY_LIST_URL_DEFAULT = "https://raw.githubusercontent.com/ktoto1300/Proxy-s/main/proxies.txt";
@@ -23,6 +26,7 @@ public class ProxyManager {
 
     private static boolean started = false;
     private static boolean isChecking = false;
+    public static boolean startupDialogShown = false;
 
     // ─── Start ────────────────────────────────────────────────────────────────
 
@@ -56,6 +60,91 @@ public class ProxyManager {
                     fetchAndApplyProxies();
                 }
             }
+        }).start();
+    }
+
+    public static void showStartupLoadingDialog(final android.app.Activity activity) {
+        if (startupDialogShown || !SharedConfig.proxyStartupLoading) return;
+        startupDialogShown = true;
+
+        final org.telegram.ui.ActionBar.AlertDialog progressDialog = new org.telegram.ui.ActionBar.AlertDialog(activity, 2); // 2 = ALERT_TYPE_LOADING
+        progressDialog.setTitle("Загрузка прокси");
+        progressDialog.setCanCancel(false);
+        progressDialog.show();
+        progressDialog.setProgress(0);
+
+        new Thread(() -> {
+            AndroidUtilities.runOnUIThread(() -> progressDialog.setProgress(10));
+            try {
+                String urlStr = SharedConfig.proxyListUrl != null ? SharedConfig.proxyListUrl : PROXY_LIST_URL_DEFAULT;
+                HttpURLConnection conn = (HttpURLConnection) new URL(urlStr).openConnection();
+                conn.setConnectTimeout(10000);
+                conn.setReadTimeout(10000);
+
+                java.io.BufferedReader reader = new java.io.BufferedReader(new InputStreamReader(conn.getInputStream()));
+                ArrayList<SharedConfig.ProxyInfo> fetched = new ArrayList<>();
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    line = line.trim();
+                    if (line.isEmpty() || line.startsWith("#")) continue;
+                    SharedConfig.ProxyInfo info = parseProxyLine(line);
+                    if (info != null) fetched.add(info);
+                }
+                reader.close();
+
+                if (!fetched.isEmpty()) {
+                    if (SharedConfig.isPremium()) {
+                        fetched.add(new SharedConfig.ProxyInfo("premium.proxygram.net", 443, "", "", "ee112233445566778899aabbccddeeff"));
+                    }
+                    SharedConfig.proxyList.clear();
+                    SharedConfig.proxyList.addAll(fetched);
+                    SharedConfig.saveProxyList();
+                }
+            } catch (Exception e) {
+                FileLog.e("ProxyManager: sync fetch failed - " + e.getMessage());
+            }
+
+            AndroidUtilities.runOnUIThread(() -> progressDialog.setProgress(30));
+
+            if (!SharedConfig.proxyList.isEmpty()) {
+                ArrayList<SharedConfig.ProxyInfo> list = new ArrayList<>(SharedConfig.proxyList);
+                final Object lock = new Object();
+                final SharedConfig.ProxyInfo[] bestProxy = new SharedConfig.ProxyInfo[1];
+                final long[] bestPing = new long[]{Long.MAX_VALUE};
+                
+                final int total = list.size();
+                final int[] current = new int[]{0};
+
+                ExecutorService executor = Executors.newFixedThreadPool(20);
+                for (SharedConfig.ProxyInfo info : list) {
+                    executor.submit(() -> {
+                        long ping = pingProxy(info.address, info.port);
+                        synchronized (lock) {
+                            if (ping != -1 && ping < bestPing[0]) {
+                                bestPing[0] = ping;
+                                bestProxy[0] = info;
+                            }
+                            current[0]++;
+                            int progress = 30 + (int)((current[0] / (float)total) * 70);
+                            AndroidUtilities.runOnUIThread(() -> progressDialog.setProgress(progress));
+                        }
+                    });
+                }
+                executor.shutdown();
+                try {
+                    executor.awaitTermination(15, TimeUnit.SECONDS);
+                } catch (Exception ignored) {}
+
+                if (bestProxy[0] != null) {
+                    // Force apply, since it's the startup loading and the user wants it to automatically enable and select best proxy
+                    applyProxy(bestProxy[0]);
+                }
+            }
+
+            AndroidUtilities.runOnUIThread(() -> {
+                progressDialog.setProgress(100);
+                progressDialog.dismiss();
+            });
         }).start();
     }
 

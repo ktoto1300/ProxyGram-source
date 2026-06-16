@@ -270,6 +270,7 @@ public class SharedConfig {
     public static boolean confirmCall;
     public static boolean showSupportBanner = true;
     public static boolean proxyAutoUpdate = true;
+    public static boolean proxyStartupLoading = true;
     public static int proxyUpdateInterval = 1;
     public static boolean noSponsor = true;
     public static String proxyListUrl = "https://raw.githubusercontent.com/ktoto1300/Proxy-s/main/proxies.txt";
@@ -513,6 +514,7 @@ public class SharedConfig {
                 editor.putBoolean("mod_confirmCall", confirmCall);
                 editor.putBoolean("mod_showSupportBanner", showSupportBanner);
                 editor.putBoolean("mod_proxyAutoUpdate", proxyAutoUpdate);
+                editor.putBoolean("mod_proxyStartupLoading", proxyStartupLoading);
                 editor.putInt("mod_proxyUpdateInterval", proxyUpdateInterval);
                 editor.putBoolean("mod_noSponsor", noSponsor);
                 editor.putString("mod_proxyListUrl", proxyListUrl);
@@ -741,6 +743,7 @@ public class SharedConfig {
             confirmCall = preferences.getBoolean("mod_confirmCall", false);
             showSupportBanner = preferences.getBoolean("mod_showSupportBanner", true);
             proxyAutoUpdate = preferences.getBoolean("mod_proxyAutoUpdate", true);
+            proxyStartupLoading = preferences.getBoolean("mod_proxyStartupLoading", true);
             proxyUpdateInterval = preferences.getInt("mod_proxyUpdateInterval", 1);
             noSponsor = preferences.getBoolean("mod_noSponsor", true);
             proxyListUrl = preferences.getString("mod_proxyListUrl", "https://raw.githubusercontent.com/ktoto1300/Proxy-s/main/proxies.txt");

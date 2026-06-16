@@ -37,6 +37,7 @@ public class ModSettingsActivity extends BaseFragment {
     private int hidePhoneRow;
     private int allowScreenshotsRow;
     private int proxyAutoUpdateRow;
+    private int proxyStartupLoadingRow;
     private int proxyUpdateIntervalRow;
     private int premiumRow;
     private int liveDraftsRow;
@@ -110,6 +111,8 @@ public class ModSettingsActivity extends BaseFragment {
                 SharedConfig.allowScreenshotsInSecret = !SharedConfig.allowScreenshotsInSecret;
             } else if (position == proxyAutoUpdateRow) {
                 SharedConfig.proxyAutoUpdate = !SharedConfig.proxyAutoUpdate;
+            } else if (position == proxyStartupLoadingRow) {
+                SharedConfig.proxyStartupLoading = !SharedConfig.proxyStartupLoading;
             } else if (position == proxyUpdateIntervalRow) {
                 org.telegram.ui.ActionBar.AlertDialog.Builder builder = new org.telegram.ui.ActionBar.AlertDialog.Builder(getParentActivity());
                 builder.setTitle(s("Update Interval (minutes)", "\u0418\u043d\u0442\u0435\u0440\u0432\u0430\u043b (\u0432 \u043c\u0438\u043d\u0443\u0442\u0430\u0445)"));
@@ -241,6 +244,7 @@ public class ModSettingsActivity extends BaseFragment {
             hidePhoneRow = rowCount++;
             allowScreenshotsRow = rowCount++;
             proxyAutoUpdateRow = rowCount++;
+            proxyStartupLoadingRow = rowCount++;
             proxyUpdateIntervalRow = rowCount++;
             premiumRow = rowCount++;
             liveDraftsRow = rowCount++;
@@ -295,6 +299,8 @@ public class ModSettingsActivity extends BaseFragment {
                     checkCell.setTextAndCheck(s("Allow Screenshots", "\u0420\u0430\u0437\u0440\u0435\u0448\u0438\u0442\u044c \u0441\u043a\u0440\u0438\u043d\u0448\u043e\u0442\u044b"), SharedConfig.allowScreenshotsInSecret, true);
                 } else if (position == proxyAutoUpdateRow) {
                     checkCell.setTextAndCheck(s("Auto-Update Proxies", "\u0410\u0432\u0442\u043e\u043e\u0431\u043d. \u043f\u0440\u043e\u043a\u0441\u0438"), SharedConfig.proxyAutoUpdate, true);
+                } else if (position == proxyStartupLoadingRow) {
+                    checkCell.setTextAndCheck(s("Check Proxies on Startup", "\u041f\u0440\u043e\u0432\u0435\u0440\u043a\u0430 \u043f\u0440\u043e\u043a\u0441\u0438 \u043f\u0440\u0438 \u0432\u0445\u043e\u0434\u0435"), SharedConfig.proxyStartupLoading, true);
                 } else if (position == liveDraftsRow) {
                     checkCell.setTextAndCheck(s("Live Drafts (Premium)", "\u0411\u044b\u0441\u0442\u0440\u044b\u0435 \u0447\u0435\u0440\u043d\u043e\u0432\u0438\u043a\u0438 (Premium)"), SharedConfig.liveDrafts, true);
                 }

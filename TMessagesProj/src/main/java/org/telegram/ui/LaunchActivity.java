@@ -6497,6 +6497,7 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
             ApplicationLoader.mainInterfacePausedStageQueueTime = System.currentTimeMillis();
         });
         checkFreeDiscSpace(0);
+        org.telegram.messenger.ProxyManager.showStartupLoadingDialog(this);
         MediaController.checkGallery();
         onPasscodeResume();
         if (passcodeDialog == null || passcodeDialog.passcodeView.getVisibility() != View.VISIBLE) {
