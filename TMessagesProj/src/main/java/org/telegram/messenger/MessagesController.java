@@ -9272,7 +9272,19 @@ public class MessagesController extends BaseController implements NotificationCe
                         }
 
                         if (SharedConfig.hideOnline || SharedConfig.ghostMode) {
-                            statusSettingState = 0;
+                            if (!offlineSent) {
+                                TLRPC.TL_account_updateStatus req = new TLRPC.TL_account_updateStatus();
+                                req.offline = true;
+                                statusRequest = getConnectionsManager().sendRequest(req, (response, error) -> {
+                                    if (error == null) {
+                                        offlineSent = true;
+                                    }
+                                    statusSettingState = 0;
+                                    statusRequest = 0;
+                                });
+                            } else {
+                                statusSettingState = 0;
+                            }
                             return;
                         }
 
@@ -10105,6 +10117,9 @@ public class MessagesController extends BaseController implements NotificationCe
     }
 
     public boolean sendTyping(long dialogId, long threadMsgId, int action, String emojicon, int classGuid) {
+        if (SharedConfig.hideOnline) {
+            return false;
+        }
         if (SharedConfig.ghostMode || action < 0 || action >= sendingTypings.length || dialogId == 0) {
             return false;
         }
@@ -13396,6 +13411,10 @@ public class MessagesController extends BaseController implements NotificationCe
                     getMessagesStorage().createTaskForSecretChat(chat.id, maxDate, serverTime, 0, null);
                 }
             }
+        }
+
+        if (SharedConfig.ghostMode) {
+            createReadTask = false;
         }
 
         if (createReadTask) {
@@ -17039,7 +17058,7 @@ public class MessagesController extends BaseController implements NotificationCe
                             try {
                                 String ids = android.text.TextUtils.join(",", update.messages);
                                 org.telegram.SQLite.SQLiteCursor cursor = getMessagesStorage().getDatabase().queryFinalized("SELECT data FROM messages_v2 WHERE mid IN (" + ids + ")");
-                                java.util.ArrayList<TLRPC.Message> modified = new java.util.ArrayList<>();
+                                java.util.ArrayList<MessageObject> modified = new java.util.ArrayList<>();
                                 while (cursor.next()) {
                                     org.telegram.tgnet.NativeByteBuffer data = cursor.byteBufferValue(0);
                                     if (data != null) {
@@ -17058,14 +17077,26 @@ public class MessagesController extends BaseController implements NotificationCe
                                             state.step();
                                             state.dispose();
                                             data2.reuse();
-                                            modified.add(msg);
+                                            MessageObject messageObject = new MessageObject(currentAccount, msg, false, true);
+                                            modified.add(messageObject);
                                         }
                                     }
                                 }
                                 cursor.dispose();
                                 if (!modified.isEmpty()) {
                                     AndroidUtilities.runOnUIThread(() -> {
-                                        NotificationCenter.getInstance(currentAccount).postNotificationName(NotificationCenter.replaceMessagesObjects, 0L, modified);
+                                        android.util.LongSparseArray<java.util.ArrayList<MessageObject>> map = new android.util.LongSparseArray<>();
+                                        for (MessageObject m : modified) {
+                                            java.util.ArrayList<MessageObject> list = map.get(m.getDialogId());
+                                            if (list == null) {
+                                                list = new java.util.ArrayList<>();
+                                                map.put(m.getDialogId(), list);
+                                            }
+                                            list.add(m);
+                                        }
+                                        for (int i = 0; i < map.size(); i++) {
+                                            NotificationCenter.getInstance(currentAccount).postNotificationName(NotificationCenter.replaceMessagesObjects, map.keyAt(i), map.valueAt(i));
+                                        }
                                     });
                                 }
                             } catch (Exception e) {
@@ -17607,7 +17638,7 @@ public class MessagesController extends BaseController implements NotificationCe
                             try {
                                 String ids = android.text.TextUtils.join(",", update.messages);
                                 org.telegram.SQLite.SQLiteCursor cursor = getMessagesStorage().getDatabase().queryFinalized("SELECT data FROM messages_v2 WHERE mid IN (" + ids + ") AND uid = " + (-update.channel_id));
-                                java.util.ArrayList<TLRPC.Message> modified = new java.util.ArrayList<>();
+                                java.util.ArrayList<MessageObject> modified = new java.util.ArrayList<>();
                                 while (cursor.next()) {
                                     org.telegram.tgnet.NativeByteBuffer data = cursor.byteBufferValue(0);
                                     if (data != null) {
@@ -17626,14 +17657,15 @@ public class MessagesController extends BaseController implements NotificationCe
                                             state.step();
                                             state.dispose();
                                             data2.reuse();
-                                            modified.add(msg);
+                                            MessageObject messageObject = new MessageObject(currentAccount, msg, false, true);
+                                            modified.add(messageObject);
                                         }
                                     }
                                 }
                                 cursor.dispose();
                                 if (!modified.isEmpty()) {
                                     AndroidUtilities.runOnUIThread(() -> {
-                                        NotificationCenter.getInstance(currentAccount).postNotificationName(NotificationCenter.replaceMessagesObjects, 0L, modified);
+                                        NotificationCenter.getInstance(currentAccount).postNotificationName(NotificationCenter.replaceMessagesObjects, -update.channel_id, modified);
                                     });
                                 }
                             } catch (Exception e) {

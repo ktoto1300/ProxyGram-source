@@ -39,8 +39,8 @@ public class ProxyManager {
             // Только если юзер ещё не настраивал прокси вручную
             if (!isUserConfigured() && !SharedConfig.proxyList.isEmpty()) {
                 SharedConfig.ProxyInfo first = SharedConfig.proxyList.get(0);
-                applyProxy(first);
-                FileLog.d("ProxyManager: auto-applied saved proxy on startup: " + first.address);
+                // applyProxy(first);
+                // FileLog.d("ProxyManager: auto-applied saved proxy on startup: " + first.address);
             }
 
             // Шаг 2: ждём 10 секунд пока сеть поднимется
@@ -93,12 +93,7 @@ public class ProxyManager {
                 reader.close();
 
                 if (!fetched.isEmpty()) {
-                    if (SharedConfig.isPremium()) {
-                        fetched.add(new SharedConfig.ProxyInfo("premium.proxygram.net", 443, "", "", "ee112233445566778899aabbccddeeff"));
-                    }
-                    SharedConfig.proxyList.clear();
-                    SharedConfig.proxyList.addAll(fetched);
-                    SharedConfig.saveProxyList();
+                    addNewProxiesToList(fetched);
                 }
             } catch (Exception e) {
                 FileLog.e("ProxyManager: sync fetch failed - " + e.getMessage());
@@ -120,9 +115,16 @@ public class ProxyManager {
                     executor.submit(() -> {
                         long ping = pingProxy(info.address, info.port);
                         synchronized (lock) {
-                            if (ping != -1 && ping < bestPing[0]) {
-                                bestPing[0] = ping;
-                                bestProxy[0] = info;
+                            if (ping != -1) {
+                                info.ping = ping;
+                                info.available = true;
+                                if (ping < bestPing[0]) {
+                                    bestPing[0] = ping;
+                                    bestProxy[0] = info;
+                                }
+                            } else {
+                                info.ping = 0;
+                                info.available = false;
                             }
                             current[0]++;
                             int progress = 30 + (int)((current[0] / (float)total) * 70);
@@ -135,10 +137,10 @@ public class ProxyManager {
                     executor.awaitTermination(15, TimeUnit.SECONDS);
                 } catch (Exception ignored) {}
 
-                if (bestProxy[0] != null) {
-                    // Force apply, since it's the startup loading and the user wants it to automatically enable and select best proxy
-                    applyProxy(bestProxy[0]);
-                }
+                // Auto-apply logic removed per user request: "я просил чтобы в самом начале было выключено"
+                // if (bestProxy[0] != null) {
+                //     applyProxy(bestProxy[0]);
+                // }
             }
 
             AndroidUtilities.runOnUIThread(() -> {
@@ -283,32 +285,27 @@ public class ProxyManager {
                 SharedConfig.ProxyInfo info = SharedConfig.proxyList.get(i);
                 long ping = pingProxy(info.address, info.port);
                 if (ping == -1) {
-                    // Недоступен — убираем из текущего списка
-                    toRemove.add(info);
-                    FileLog.d("ProxyManager: unreachable, removing from list: "
-                            + info.address + ":" + info.port);
-                } else if (bestProxy == null) {
-                    bestProxy = info;
+                    info.available = false;
+                    info.ping = 0;
+                } else {
+                    info.available = true;
+                    info.ping = ping;
+                    if (bestProxy == null || ping < bestProxy.ping) {
+                        bestProxy = info;
+                    }
                 }
             }
 
-            // Удаляем нерабочие из текущего списка
-            if (!toRemove.isEmpty()) {
-                for (SharedConfig.ProxyInfo bad : toRemove) {
-                    SharedConfig.proxyList.remove(bad);
-                }
-                SharedConfig.saveProxyList();
-                AndroidUtilities.runOnUIThread(() ->
-                        NotificationCenter.getGlobalInstance()
-                                .postNotificationName(NotificationCenter.proxySettingsChanged));
-            }
+            AndroidUtilities.runOnUIThread(() ->
+                    NotificationCenter.getGlobalInstance()
+                            .postNotificationName(NotificationCenter.proxySettingsChanged));
 
-            // Автоприменяем только если юзер не настраивал вручную
-            if (bestProxy != null && !isUserConfigured()) {
-                if (SharedConfig.currentProxy == null || !SharedConfig.isProxyEnabled()) {
-                    applyProxy(bestProxy);
-                }
-            }
+            // Автоприменяем только если юзер не настраивал вручную (REMOVED: User requested proxy to be OFF by default)
+            // if (bestProxy != null && !isUserConfigured()) {
+            //     if (SharedConfig.currentProxy == null || !SharedConfig.isProxyEnabled()) {
+            //         applyProxy(bestProxy);
+            //     }
+            // }
 
             isChecking = false;
         }).start();
